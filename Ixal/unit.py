@@ -1,55 +1,162 @@
+# Copyright 2021-2022, Hojin Koh
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from .download import TaskDownload
+from .extract import TaskExtractTar
+from .build import TaskRunScript, TaskRunPackageScript
+from .logging import logger
+
 import Eikthyr as eik
 import luigi as lg
-from urllib.parse import urlparse
-from pathlib import Path
+import plumbum.cmd as cmd
 from plumbum import local
 
-from logzero import setup_logger
-logger = setup_logger('Ixal')
+import re
+import inspect
+from copy import deepcopy
+from pathlib import Path
 
-eik.config.metapath = ".meta"
+class UnitConfig(lg.Config):
+    pathBuild = lg.Parameter('.build')
+    pathPrefix = lg.Parameter('/opt')
+    packager = lg.Parameter('Unknown')
 
+class Unit(eik.MixinCmdUtilities):
+    src = ()
+    lsrc = ()
+    epoch = 0
+    rel = '1'
+    arch = 'any'
 
-class DownloadTask(eik.Task):
-    url = lg.Parameter()
-    pathDownload = lg.Parameter(".build/.cache")
-    cmd = lg.ListParameter(significant=False, default=("curl", "-qfLC", "-", "--retry", "5", "--retry-delay", "5", "-o", "{1}", "{0}"))
+    mTaskDownload = [
+            ('^(http|https|ftp)://.*', TaskDownload)
+            ]
+    mTaskExtract = [
+            ('.*\.tar(\.[^.]+)?$', TaskExtractTar)
+            ]
 
-    def parseFileName(self):
-        p = Path(urlparse(self.url).path)
-        if p.name == "download":
-            p = p.parent
-        return p.name
+    def __init__(self):
+        if isinstance(self.name, str):
+            self.base = self.name
+        else:
+            self.base = self.name[0]
+        self.fullver = self.getFullVersion()
+        self.pathCache = Path(UnitConfig().pathBuild).resolve() / '.cache'
+        self.pathBuild = Path(UnitConfig().pathBuild).resolve() / 'src-{}-{}'.format(self.base, self.fullver)
+        self.pathPrefix = Path(UnitConfig().pathPrefix).resolve()
 
-    def generates(self):
-        return eik.MetaTarget(self, Path(pathDownload) / self.parseFileName())
+    def getFullVersion(self):
+        if self.epoch == 0:
+            return '{}-{}'.format(self.ver, self.rel)
+        else:
+            return '{}^{}-{}'.format(self.epoch, self.ver, self.rel)
 
-    def run(self):
-        with self.output().pathWrite() as fw:
-            args = [s.format(self.url, fw) for s in self.cmd[1:]]
-            self.ex(local[self.cmd[0]][args])
-
-class ExtractTask(eik.Task):
-    src = eik.TaskParameter()
-    pathDownload = lg.Parameter(".build/.cache")
-    cmdTar = lg.ListParameter(significant=False, default=("tar", "xf", "{0}", "-C", "{1}"))
-    pass
-
-class Unit:
-    # Expected to get a plumbum object
-    def ex(self, chain):
-        logger.info("EX: {}".format(chain))
-        chain & FG
+    def pickTask(self, mapping, key):
+        for (p,t) in mapping:
+            if re.match(p, key):
+                return t
+        return None
 
     def make(self):
         urls = self.src
+        self.src = []
         if isinstance(urls, str):
             urls = (urls,)
+        lfiles = self.lsrc
+        self.lsrc = []
+        if isinstance(lfiles, str):
+            lfiles = (lfiles,)
 
         aTaskSource = []
-        for f in 
-            
-            eik.run((DownloadTask(self.src),))
-        eik.run((ATask(),))
-        print("MAKE")
+        for (i,f) in enumerate(urls):
+            tDl = self.pickTask(self.mTaskDownload, f)(f, str(self.pathCache))
+            classExtract = self.pickTask(self.mTaskExtract, tDl.output().path)
+            if classExtract == None:
+                aTaskSource.append(tDl)
+                self.src.append(tDl.output().path)
+            else:
+                tEx = classExtract(tDl, str(self.pathBuild / '{:d}'.format(i)))
+                aTaskSource.append(tEx)
+                self.src.append(tEx.output().path)
+        for (i,f) in enumerate(lfiles):
+            fThis = str(Path(inspect.getfile(self.__class__)).parent / f)
+            classExtract = self.pickTask(self.mTaskExtract, fThis)
+            if classExtract == None:
+                aTaskSource.append(eik.InputTask(fThis))
+                self.lsrc.append(fThis)
+            else:
+                tEx = classExtract(eik.InputTask(fThis), str(self.pathBuild / 'L{:d}'.format(i)))
+                aTaskSource.append(tEx)
+                self.lsrc.append(tEx.output().path)
 
+        tPre = TaskRunScript(aTaskSource, self, 'prepare', str(self.pathBuild), pathStamp=str(self.pathBuild))
+        tBuild = TaskRunScript((tPre,), self, 'build', str(self.pathBuild), pathStamp=str(self.pathBuild))
+
+        aTaskPackage = []
+        if isinstance(self.name, str): # Single package mode
+            tPkg = TaskRunPackageScript((tBuild,), self, 'package', str(self.pathPkg))
+            aTaskPackage.append(tPkg)
+        else:
+            for (i,name) in enumerate(self.name):
+                unitThis = deepcopy(self)
+                unitThis.name = name
+                pathPkg = Path(UnitConfig().pathBuild).resolve() / 'pkg-{}-{}'.format(name, self.fullver)
+                tPkg = TaskRunPackageScript((tBuild,), self, 'package{:d}'.format(i), str(pathPkg))
+                aTaskPackage.append(tPkg)
+
+        eik.run(aTaskPackage)
+
+    def prepare(self):
+        pass
+
+    def build(self):
+        pass
+
+    def package(self):
+        pass
+
+    def patch(self, filePatch, lvl=None):
+        if lvl != None:
+            lvlseq = (lvl,)
+        else:
+            lvlseq = (0,1,2,3,4,5,6)
+
+        # First, try to reverse patch (in dry run)
+        for lvl in lvlseq:
+            try:
+                cmd.patch('-RftNp{:d}'.format(lvl), '--dry-run', '-i', filePatch)
+            except:
+                continue
+            logger.debug("At level {:d} already applied patch {}".format(lvl, filePatch))
+            return
+
+        for lvl in lvlseq:
+            try:
+                out = cmd.patch('-ltNp{:d}'.format(lvl), '-i', filePatch)
+            except:
+                continue
+            logger.debug("At level {:d} successfully applied patch {}".format(lvl, filePatch))
+            return
+        raise RuntimeError("Failed to apply patch {} at any level".format(filePatch))
+
+    def runConfigure(self, *args, prefix=None):
+        if prefix == None:
+            prefix = self.pathPrefix
+        self.ex(self.local('./configure')[('--prefix={}'.format(prefix), *args)])
+
+    def runMake(self, *args):
+        self.ex(self.cmd.make[('-j{:d}'.format(3), *args)])
+
+    def runMakeInstall(self, path, *args):
+        self.ex(self.cmd.make[('DESTDIR={}/'.format(path), *args, 'install')])
