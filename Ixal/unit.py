@@ -112,8 +112,8 @@ class Unit(eik.MixinCmdUtilities):
                 aTaskSource.append(tEx)
                 self.lsrc.append(tEx.output().path)
 
-        tPre = TaskRunScript(aTaskSource, self, 'prepare', str(self.pathBuild), pathStamp=str(self.pathBuild))
-        tBuild = TaskRunScript((tPre,), self, 'build', str(self.pathBuild), pathStamp=str(self.pathBuild))
+        tPre = TaskRunScript(aTaskSource, self, 'prepare', pathStamp=str(self.pathBuild))
+        tBuild = TaskRunScript((tPre,), self, 'build', pathStamp=str(self.pathBuild))
 
         aTaskFinal = []
         aNames = self.name

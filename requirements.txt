@@ -1,1 +1,1 @@
-https://github.com/hojin-koh/Eikthyr/archive/v0.2.2.tar.gz
+https://github.com/hojin-koh/Eikthyr/archive/v0.2.3.tar.gz

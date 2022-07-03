@@ -21,7 +21,12 @@ class TaskRunScript(eik.StampTask):
     srcs = eik.TaskListParameter(significant=False)
     unit = eik.WhateverParameter(significant=False)
     fun = eik.Parameter()
-    workdir = eik.PathParameter()
+
+    checkInputHash = True  # we DO actually care about the upstream status
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.workdir = self.pathStamp
 
     def getCode(self):
         return getattr(self.unit.__class__, self.fun)
