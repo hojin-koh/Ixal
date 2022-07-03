@@ -15,6 +15,7 @@
 from .download import TaskDownload
 from .extract import TaskExtractTar
 from .build import TaskRunScript, TaskRunPackageScript
+from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
 from .logging import logger
 
 import Eikthyr as eik
@@ -28,16 +29,23 @@ from copy import deepcopy
 from pathlib import Path
 
 class UnitConfig(lg.Config):
-    pathBuild = lg.Parameter('.build')
-    pathPrefix = lg.Parameter('/opt')
-    packager = lg.Parameter('Unknown')
+    pathBuild = eik.PathParameter('.build')
+    pathPrefix = eik.PathParameter('/opt')
+    pathOutput = eik.PathParameter('.pkg')
+    packager = eik.Parameter('Unknown')
 
 class Unit(eik.MixinCmdUtilities):
     src = ()
     lsrc = ()
     epoch = 0
+    desc = ''
     rel = '1'
     arch = 'any'
+    url = ''
+    packager = UnitConfig().packager
+    replaces = ()
+    groups = ()
+    depends = ()
 
     mTaskDownload = [
             ('^(http|https|ftp)://.*', TaskDownload)
@@ -54,13 +62,17 @@ class Unit(eik.MixinCmdUtilities):
         self.fullver = self.getFullVersion()
         self.pathCache = Path(UnitConfig().pathBuild).resolve() / '.cache'
         self.pathBuild = Path(UnitConfig().pathBuild).resolve() / 'src-{}-{}'.format(self.base, self.fullver)
+        self.pathOutput = Path(UnitConfig().pathOutput).resolve()
         self.pathPrefix = Path(UnitConfig().pathPrefix).resolve()
 
-    def getFullVersion(self):
+    def getFullVersion(self, filename=True):
         if self.epoch == 0:
             return '{}-{}'.format(self.ver, self.rel)
         else:
-            return '{}^{}-{}'.format(self.epoch, self.ver, self.rel)
+            if filename:
+                return '{}^{}-{}'.format(self.epoch, self.ver, self.rel)
+            else:
+                return '{}:{}-{}'.format(self.epoch, self.ver, self.rel)
 
     def pickTask(self, mapping, key):
         for (p,t) in mapping:
@@ -103,19 +115,24 @@ class Unit(eik.MixinCmdUtilities):
         tPre = TaskRunScript(aTaskSource, self, 'prepare', str(self.pathBuild), pathStamp=str(self.pathBuild))
         tBuild = TaskRunScript((tPre,), self, 'build', str(self.pathBuild), pathStamp=str(self.pathBuild))
 
-        aTaskPackage = []
-        if isinstance(self.name, str): # Single package mode
-            tPkg = TaskRunPackageScript((tBuild,), self, 'package', str(self.pathPkg))
-            aTaskPackage.append(tPkg)
-        else:
-            for (i,name) in enumerate(self.name):
-                unitThis = deepcopy(self)
-                unitThis.name = name
-                pathPkg = Path(UnitConfig().pathBuild).resolve() / 'pkg-{}-{}'.format(name, self.fullver)
-                tPkg = TaskRunPackageScript((tBuild,), self, 'package{:d}'.format(i), str(pathPkg))
-                aTaskPackage.append(tPkg)
+        aTaskFinal = []
+        aNames = self.name
+        if isinstance(aNames, str): # Single package mode
+            aNames = (aNames,)
+        for (i,name) in enumerate(aNames):
+            unitThis = deepcopy(self)
+            unitThis.name = name
+            pathPkg = Path(UnitConfig().pathBuild).resolve() / 'pkg-{}-{}'.format(name, self.fullver)
+            if len(aNames) == 1:
+                tPkg = TaskRunPackageScript(tBuild, unitThis, 'package', str(pathPkg))
+            else:
+                tPkg = TaskRunPackageScript(tBuild, unitThis, 'package{:d}'.format(i), str(pathPkg))
+            tInfo = TaskPackageInfo(tPkg, unitThis)
+            tMTree = TaskPackageMTree(tInfo)
+            tPack = TaskPackageTar(tMTree, str(self.pathOutput / '{}-{}-{}.pkg.tar.zst'.format(name, self.fullver, self.arch)))
+            aTaskFinal.append(tPack)
 
-        eik.run(aTaskPackage)
+        eik.run(aTaskFinal)
 
     def prepare(self):
         pass
@@ -153,7 +170,7 @@ class Unit(eik.MixinCmdUtilities):
     def runConfigure(self, *args, prefix=None):
         if prefix == None:
             prefix = self.pathPrefix
-        self.ex(self.local('./configure')[('--prefix={}'.format(prefix), *args)])
+        self.ex(self.local['./configure'][('--prefix={}'.format(prefix), *args)])
 
     def runMake(self, *args):
         self.ex(self.cmd.make[('-j{:d}'.format(3), *args)])

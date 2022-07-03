@@ -18,10 +18,10 @@ import luigi as lg
 from pathlib import Path
 
 class TaskRunScript(eik.StampTask):
-    srcs = eik.TaskListParameter()
+    srcs = eik.TaskListParameter(significant=False)
     unit = eik.WhateverParameter(significant=False)
-    fun = lg.Parameter()
-    workdir = lg.Parameter()
+    fun = eik.Parameter()
+    workdir = eik.PathParameter()
 
     def getCode(self):
         return getattr(self.unit.__class__, self.fun)
@@ -35,10 +35,10 @@ class TaskRunScript(eik.StampTask):
             getattr(self.unit.__class__, self.fun)(self.unit)
 
 class TaskRunPackageScript(eik.Task):
-    srcs = eik.TaskListParameter()
+    src = eik.TaskParameter(significant=False)
     unit = eik.WhateverParameter(significant=False)
-    fun = lg.Parameter()
-    out = lg.Parameter()
+    fun = eik.Parameter()
+    out = eik.PathParameter()
 
     checkOutputHash = False
 
@@ -46,7 +46,7 @@ class TaskRunPackageScript(eik.Task):
         return getattr(self.unit.__class__, self.fun)
 
     def requires(self):
-        return self.srcs
+        return self.src
 
     def generates(self):
         return eik.Target(self, self.out)

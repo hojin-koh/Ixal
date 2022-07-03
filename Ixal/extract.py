@@ -20,7 +20,7 @@ from plumbum import local
 
 class TaskExtractBase(eik.Task):
     src = eik.TaskParameter()
-    pathOut = lg.Parameter()
+    pathOut = eik.PathParameter()
 
     checkOutputHash = False
 
@@ -42,7 +42,7 @@ class TaskExtractBase(eik.Task):
         
 
 class TaskExtractTar(TaskExtractBase):
-    cmd = lg.ListParameter(significant=False, default=('tar', 'xf', '{0}', '-C', '{1}'))
+    cmd = eik.ListParameter(significant=False, default=('tar', 'xf', '{0}', '-C', '{1}'))
 
     def task(self):
         with self.output().pathWrite() as fw:

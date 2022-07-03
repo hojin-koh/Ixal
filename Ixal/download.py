@@ -20,9 +20,9 @@ from plumbum import local
 
 
 class TaskDownload(eik.Task):
-    url = lg.Parameter()
-    pathCache = lg.Parameter(significant=False)
-    cmd = lg.ListParameter(significant=False, default=('curl', '-qfLC', '-', '--ftp-pasv', '--retry', '5', '--retry-delay', '5', '-o', '{1}', '{0}'))
+    url = eik.Parameter()
+    pathCache = eik.PathParameter(significant=False)
+    cmd = eik.ListParameter(significant=False, default=('curl', '-qfLC', '-', '--ftp-pasv', '--retry', '5', '--retry-delay', '5', '-o', '{1}', '{0}'))
 
     def parseFileName(self):
         p = Path(urlparse(self.url).path)
