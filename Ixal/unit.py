@@ -16,12 +16,10 @@ from .download import TaskDownload
 from .extract import TaskExtractTar
 from .build import TaskRunScript, TaskRunPackageScript
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
-from .logging import logger
+from .cmd import MixinBuildUtilities
 
 import Eikthyr as eik
 import luigi as lg
-import plumbum.cmd as cmd
-from plumbum import local
 
 import re
 import inspect
@@ -34,7 +32,7 @@ class UnitConfig(lg.Config):
     pathOutput = eik.PathParameter('.pkg')
     packager = eik.Parameter('Unknown')
 
-class Unit(eik.MixinCmdUtilities):
+class Unit(MixinBuildUtilities):
     src = ()
     lsrc = ()
     epoch = 0
@@ -142,38 +140,3 @@ class Unit(eik.MixinCmdUtilities):
 
     def package(self):
         pass
-
-    def patch(self, filePatch, lvl=None):
-        if lvl != None:
-            lvlseq = (lvl,)
-        else:
-            lvlseq = (0,1,2,3,4,5,6)
-
-        # First, try to reverse patch (in dry run)
-        for lvl in lvlseq:
-            try:
-                cmd.patch('-RftNp{:d}'.format(lvl), '--dry-run', '-i', filePatch)
-            except:
-                continue
-            logger.debug("At level {:d} already applied patch {}".format(lvl, filePatch))
-            return
-
-        for lvl in lvlseq:
-            try:
-                out = cmd.patch('-ltNp{:d}'.format(lvl), '-i', filePatch)
-            except:
-                continue
-            logger.debug("At level {:d} successfully applied patch {}".format(lvl, filePatch))
-            return
-        raise RuntimeError("Failed to apply patch {} at any level".format(filePatch))
-
-    def runConfigure(self, *args, prefix=None):
-        if prefix == None:
-            prefix = self.pathPrefix
-        self.ex(self.local['./configure'][('--prefix={}'.format(prefix), *args)])
-
-    def runMake(self, *args):
-        self.ex(self.cmd.make[('-j{:d}'.format(3), *args)])
-
-    def runMakeInstall(self, path, *args):
-        self.ex(self.cmd.make[('DESTDIR={}/'.format(path), *args, 'install')])
