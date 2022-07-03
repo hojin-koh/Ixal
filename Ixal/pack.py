@@ -20,11 +20,12 @@ import time
 from pathlib import Path
 
 class TaskPackageInfo(eik.Task):
-    src = eik.TaskParameter() # Presumably this is the package directory
+    src = eik.TaskParameter()
+    srcs = eik.TaskListParameter(significant=False)
     unit = eik.WhateverParameter(significant=False)
 
     def requires(self):
-        return self.src
+        return (self.src, self.srcs)
 
     def generates(self):
         return eik.Target(self, Path(self.src.output().path) / '.PKGINFO')

@@ -16,6 +16,7 @@ from .download import TaskDownload
 from .extract import TaskExtractTar
 from .build import TaskRunScript, TaskRunPackageScript
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
+from .tidy import TaskStrip
 from .cmd import MixinBuildUtilities
 
 import Eikthyr as eik
@@ -51,6 +52,7 @@ class Unit(MixinBuildUtilities):
     mTaskExtract = [
             ('.*\.tar(\.[^.]+)?$', TaskExtractTar)
             ]
+    aTaskPostProcess = [TaskStrip]
 
     def __init__(self):
         if isinstance(self.name, str):
@@ -91,22 +93,22 @@ class Unit(MixinBuildUtilities):
         aTaskSource = []
         for (i,f) in enumerate(urls):
             tDl = self.pickTask(self.mTaskDownload, f)(f, str(self.pathCache))
-            classExtract = self.pickTask(self.mTaskExtract, tDl.output().path)
-            if classExtract == None:
+            clsExtract = self.pickTask(self.mTaskExtract, tDl.output().path)
+            if clsExtract == None:
                 aTaskSource.append(tDl)
                 self.src.append(tDl.output().path)
             else:
-                tEx = classExtract(tDl, str(self.pathBuild / '{:d}'.format(i)))
+                tEx = clsExtract(tDl, str(self.pathBuild / '{:d}'.format(i)))
                 aTaskSource.append(tEx)
                 self.src.append(tEx.output().path)
         for (i,f) in enumerate(lfiles):
             fThis = str(Path(inspect.getfile(self.__class__)).parent / f)
-            classExtract = self.pickTask(self.mTaskExtract, fThis)
-            if classExtract == None:
+            clsExtract = self.pickTask(self.mTaskExtract, fThis)
+            if clsExtract == None:
                 aTaskSource.append(eik.InputTask(fThis))
                 self.lsrc.append(fThis)
             else:
-                tEx = classExtract(eik.InputTask(fThis), str(self.pathBuild / 'L{:d}'.format(i)))
+                tEx = clsExtract(eik.InputTask(fThis), str(self.pathBuild / 'L{:d}'.format(i)))
                 aTaskSource.append(tEx)
                 self.lsrc.append(tEx.output().path)
 
@@ -125,7 +127,14 @@ class Unit(MixinBuildUtilities):
                 tPkg = TaskRunPackageScript(tBuild, unitThis, 'package', str(pathPkg))
             else:
                 tPkg = TaskRunPackageScript(tBuild, unitThis, 'package{:d}'.format(i), str(pathPkg))
-            tInfo = TaskPackageInfo(tPkg, unitThis)
+
+            # Cleanup/Tidying installed package
+            aTaskPost = []
+            for cls in self.aTaskPostProcess:
+                aTaskPost.append(cls(tPkg, pathStamp=str(self.pathBuild)))
+
+            # Final touch and tarring things up
+            tInfo = TaskPackageInfo(tPkg, aTaskPost, unitThis)
             tMTree = TaskPackageMTree(tInfo)
             tPack = TaskPackageTar(tMTree, str(self.pathOutput / '{}-{}-{}.pkg.tar.zst'.format(name, self.fullver, self.arch)))
             aTaskFinal.append(tPack)
