@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Ixal"
+version = "0.0.1"
+authors = [
+    { name="Hojin Koh", email="hojin-koh@users.noreply.github.com" },
+]
+description = "A Eikthyr-based makepkg-like python library to build pacman-compatible packages."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = ["Eikthyr"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/hojin-koh/Ixal"
+"Bug Tracker" = "https://github.com/hojin-koh/Ixal/issues"
