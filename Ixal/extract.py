@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import Eikthyr as eik
-import luigi as lg
+import re
 import shutil
+import sys
 from pathlib import Path
-from plumbum import local
 
 class TaskExtractBase(eik.Task):
     src = eik.TaskParameter()
@@ -31,7 +31,6 @@ class TaskExtractBase(eik.Task):
         return eik.Target(self, self.pathOut)
 
     def killRedundantDir(self, path):
-        # TODO: what if there's a directory with identical name?
         aContent = list(Path(path).iterdir())
         if len(aContent) > 1 or not aContent[0].is_dir():
             return
@@ -39,14 +38,59 @@ class TaskExtractBase(eik.Task):
             shutil.move(p, path)
         if len(list(aContent[0].iterdir())) == 0:
             aContent[0].rmdir()
-        
+
+    def normalizePerm(self, path):
+        if sys.platform == "cygwin": # Special perm normalization
+            for f in Path(path).glob('**/*'):
+                if f.is_dir():
+                    f.chmod(0o755)
+                    continue
+                if re.match('.*\.(dll|exe|cmd|bat|com|ps|ps1|js|vbs)$', f.name):
+                    f.chmod(0o755)
+                else:
+                    f.chmod(0o644)
+
 
 class TaskExtractTar(TaskExtractBase):
-    cmd = eik.ListParameter(significant=False, default=('tar', 'xf', '{0}', '-C', '{1}'))
+    cmdTar = eik.ListParameter(significant=False, default=('bsdtar', 'xf', '{0}', '-C', '{1}'))
 
     def task(self):
+        cmdReal = list(self.cmdTar)
+        if self.cmdTar[0] == 'bsdtar' and not 'bsdtar' in self.local: # Default fallback
+            cmdReal[0] = 'tar'
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
-            args = [s.format(self.input().path, fw) for s in self.cmd[1:]]
-            self.ex(local[self.cmd[0]][args])
+            args = [s.format(self.input().path, fw) for s in cmdReal[1:]]
+            self.ex(self.local[cmdReal[0]][args])
             self.killRedundantDir(fw)
+
+class TaskExtract7z(TaskExtractBase):
+    cmd7z = eik.ListParameter(significant=False, default=('7zz', '-y', 'x', '-o{1}', '{0}'))
+
+    def task(self):
+        cmdReal = list(self.cmd7z)
+        if self.cmd7z[0] == '7zz' and not '7zz' in self.local: # Default fallback
+            cmdReal[0] = '7za'
+        with self.output().pathWrite() as fw:
+            Path(fw).mkdir(parents=True, exist_ok=True)
+            args = [s.format(self.input().path, fw) for s in cmdReal[1:]]
+            self.ex(self.local[cmdReal[0]][args])
+            self.killRedundantDir(fw)
+            self.normalizePerm(fw)
+
+class TaskExtract7zOptional(TaskExtractBase):
+    cmd7z = eik.ListParameter(significant=False, default=('7zz', '-y', 'x', '-o{1}', '{0}'))
+
+    def task(self):
+        cmdReal = list(self.cmd7z)
+        if self.cmd7z[0] == '7zz' and not '7zz' in self.local: # Default fallback
+            cmdReal[0] = '7za'
+        with self.output().pathWrite() as fw:
+            Path(fw).mkdir(parents=True, exist_ok=True)
+            try:
+                args = [s.format(self.input().path, fw) for s in cmdReal[1:]]
+                self.ex(self.local[cmdReal[0]][args])
+                self.killRedundantDir(fw)
+            except:
+                shutil.copy(self.input().path, fw)
+            self.normalizePerm(fw)

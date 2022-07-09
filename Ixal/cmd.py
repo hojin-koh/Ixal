@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .logging import logger
-
-import Eikthyr as eik
-
 import plumbum.cmd as cmd
 from plumbum import local
+import Eikthyr as eik
+
+from .logging import logger
 
 class MixinBuildUtilities(eik.MixinCmdUtilities):
     def patch(self, filePatch, lvl=None):

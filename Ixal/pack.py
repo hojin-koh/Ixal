@@ -37,7 +37,7 @@ class TaskPackageInfo(eik.Task):
             os.utime(f, (tstamp, tstamp))
             if f.is_file():
                 size += f.stat().st_size
-        
+
         with self.output().fpWrite() as fpw:
             fpw.write('pkgname = {}\n'.format(self.unit.name))
             fpw.write('pkgbase = {}\n'.format(self.unit.base))

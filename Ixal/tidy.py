@@ -20,7 +20,8 @@ import re
 import time
 from pathlib import Path
 
-class TaskStrip(eik.StampTask):
+
+class TaskPostProcessingBase(eik.StampTask):
     src = eik.TaskParameter()
     enabled = lg.BoolParameter(True)
 
@@ -29,11 +30,48 @@ class TaskStrip(eik.StampTask):
     def requires(self):
         return self.src
 
+class TaskStrip(TaskPostProcessingBase):
     def task(self):
+        if not self.enabled: return
         for f in Path(self.src.output().path).glob('**/*'):
             if f.is_dir(): continue
-            if f.stat().st_mode & 0o0100 or re.match('.*\.(a|so|dll|lib)(\..*)?$', f.name):
+            if f.stat().st_mode & 0o0100 or re.match('.*\.(a|so|dll|lib|exe)(\.[^/]*)?$', f.name):
                 try:
                     self.ex(self.cmd.strip['-pD', '-S', str(f)])
                 except:
                     continue
+
+class TaskPurge(TaskPostProcessingBase):
+    pattern = eik.ListParameter(significant=False, default=(
+        '.*__pycache__/',
+        '(.*/|^)share/(info|doc|gtk-doc|locale)/',
+        '(.*/|^)man/man[367]/',
+        '.*\.(pyc|pod)'
+        '(.*/|^).packlist',
+        '^\.[^/]+'
+        ))
+    patternExtra = eik.ListParameter(significant=False, default=())
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        aPatDir = []
+        aPatFile = []
+        for pat in self.pattern + self.patternExtra:
+            if pat.endswith('/'):
+                aPatDir.append('{}$'.format(pat[:-1]))
+            else:
+                aPatFile.append('{}$'.format(pat))
+        self.reDir = re.compile('|'.join(aPatDir))
+        self.reFile = re.compile('|'.join(aPatFile))
+
+    def task(self):
+        if not self.enabled: return
+        for f in Path(self.src.output().path).glob('**/*'):
+            f = f.relative_to(self.src.output().path)
+            if not f.exists(): continue
+            if f.is_dir():
+                if self.reDir.match(f):
+                    shutil.rmtree(f)
+            else:
+                if self.reFile.match(f):
+                    f.unlink()

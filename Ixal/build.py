@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import Eikthyr as eik
-import luigi as lg
-
 from pathlib import Path
+
+import Eikthyr as eik
 
 class TaskRunScript(eik.StampTask):
     srcs = eik.TaskListParameter(significant=False)
@@ -63,4 +62,4 @@ class TaskRunPackageScript(eik.Task):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             with self.chdir(fw):
-                getattr(self.unit.__class__, self.fun)(self.unit, fw)
+                getattr(self.unit.__class__, self.fun)(self.unit)
