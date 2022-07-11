@@ -34,9 +34,11 @@ class UnitConfig(lg.Config):
     packager = eik.Parameter('Unknown')
 
 class Unit(MixinBuildUtilities):
+    name = ''
     src = ()
     lsrc = ()
     epoch = 0
+    ver = '1.0'
     desc = ''
     rel = '1'
     arch = 'any'
@@ -81,6 +83,38 @@ class Unit(MixinBuildUtilities):
             if re.match(p, key):
                 return t
         return None
+
+    def loadPKGINFO(self, fp):
+        self.replaces = []
+        self.groups = []
+        self.depends = []
+        for line in iter(fp):
+            key, val = line.strip().split(' = ', 1)
+            if key == 'pkgname':
+                self.name = val
+            elif key == 'pkgbase':
+                self.base = val
+            elif key == 'pkgver':
+                self.fullver = val
+            elif key == 'pkgdesc':
+                self.desc = val
+            elif key == 'url':
+                self.url = val
+            elif key == 'packager':
+                self.packager = val
+            elif key == 'arch':
+                self.arch = val
+            elif key == 'size':
+                self.size = int(val)
+            elif key == 'builddate':
+                self.builddate = int(val)
+            elif key == 'replaces':
+                self.replaces.append(val)
+            elif key == 'group':
+                self.groups.append(val)
+            elif key == 'depend':
+                self.depends.append(val)
+        return self
 
     def make(self):
         urls = self.src
