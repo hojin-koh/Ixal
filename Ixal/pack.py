@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2021-2022, Hojin Koh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,7 +44,8 @@ class TaskPackageInfo(eik.Task):
             fpw.write('pkgbase = {}\n'.format(self.unit.base))
             fpw.write('pkgver = {}\n'.format(self.unit.getFullVersion(filename=False)))
             fpw.write('pkgdesc = {}\n'.format(self.unit.desc))
-            fpw.write('url = {}\n'.format(self.unit.url))
+            if self.unit.url:
+                fpw.write('url = {}\n'.format(self.unit.url))
             fpw.write('builddate = {}\n'.format(tstamp))
             fpw.write('packager = {}\n'.format(self.unit.packager))
             fpw.write('size = {}\n'.format(size))
@@ -82,6 +84,7 @@ class TaskPackageMTree(eik.Task):
 class TaskPackageTar(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the .MTREE file
     out = eik.PathParameter()
+    lvl = eik.IntParameter(19)
 
     def requires(self):
         return self.src
@@ -93,4 +96,5 @@ class TaskPackageTar(eik.Task):
         dirPkg = str(Path(self.src.output().path).parent)
         with self.local.env(LANG='C'):
             with self.output().pathWrite() as fw:
-                self.ex(self.cmd.bsdtar['-cf', '-', '--strip-components', '1', '-C', dirPkg, '.'] | self.cmd.zstd['-T0', '-c', '-19'] > fw)
+                self.ex(self.cmd.bsdtar['-cf', '{}.tar'.format(fw), '--strip-components', '1', '-C', dirPkg, '.'])
+                self.ex(self.cmd.zstd['--rsyncable', '-T0', '--ultra', '--rm', '-{:d}'.format(self.lvl), '{}.tar'.format(fw), '-fo', fw])
