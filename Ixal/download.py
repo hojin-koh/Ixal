@@ -35,5 +35,4 @@ class TaskDownload(eik.Task):
 
     def task(self):
         with self.output().pathWrite() as fw:
-            args = [s.format(self.url, fw) for s in self.cmdcurl[1:]]
-            self.ex(local[self.cmdcurl[0]][args])
+            self.ex(self.cmdfmt(self.cmdcurl, self.url, fw))
