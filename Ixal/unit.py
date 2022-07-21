@@ -79,6 +79,8 @@ class Unit(MixinBuildUtilities):
                 return '{}:{}-{}'.format(self.epoch, self.ver, self.rel)
 
     def pickTask(self, mapping, key):
+        if not isinstance(key, str):
+            key = str(key)
         for (p,t) in mapping:
             if re.match(p, key):
                 return t
