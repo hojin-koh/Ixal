@@ -68,6 +68,7 @@ class Unit(MixinBuildUtilities):
         self.pathBuild = Path(UnitConfig().pathBuild).resolve() / 'src-{}-{}'.format(self.base, self.fullver)
         self.pathOutput = Path(UnitConfig().pathOutput).resolve()
         self.pathPrefix = Path(UnitConfig().pathPrefix).resolve()
+        self.pathPrefixRel = self.pathPrefix.relative_to('/')
 
     def getFullVersion(self, filename=True):
         if self.epoch == 0:
