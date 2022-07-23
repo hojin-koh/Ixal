@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from Ixal import download
 from Ixal import extract
 
