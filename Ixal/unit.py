@@ -19,6 +19,7 @@ from .build import TaskRunScript, TaskRunPackageScript
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
 from .tidy import TaskStrip, TaskPurge
 from .cmd import MixinBuildUtilities
+from .task import pickTask
 
 import Eikthyr as eik
 import luigi as lg
@@ -80,14 +81,6 @@ class Unit(MixinBuildUtilities):
             else:
                 return '{}:{}-{}'.format(self.epoch, self.ver, self.rel)
 
-    def pickTask(self, mapping, key):
-        if not isinstance(key, str):
-            key = str(key)
-        for (p,t) in mapping:
-            if re.match(p, key):
-                return t
-        return None
-
     def loadPKGINFO(self, fp):
         self.replaces = []
         self.groups = []
@@ -132,8 +125,8 @@ class Unit(MixinBuildUtilities):
 
         aTaskSource = []
         for (i,f) in enumerate(urls):
-            tDl = self.pickTask(self.mTaskDownload, f)(f, self.pathCache)
-            clsExtract = self.pickTask(self.mTaskExtract, tDl.output().path)
+            tDl = pickTask(self.mTaskDownload, f)(f, self.pathCache)
+            clsExtract = pickTask(self.mTaskExtract, tDl.output().path)
             if clsExtract == None:
                 aTaskSource.append(tDl)
                 self.src.append(tDl.output().path)
@@ -143,7 +136,7 @@ class Unit(MixinBuildUtilities):
                 self.src.append(tEx.output().path)
         for (i,f) in enumerate(lfiles):
             fThis = Path(inspect.getfile(self.__class__)).parent / f
-            clsExtract = self.pickTask(self.mTaskExtract, fThis)
+            clsExtract = pickTask(self.mTaskExtract, fThis)
             if clsExtract == None:
                 aTaskSource.append(eik.InputTask(fThis))
                 self.lsrc.append(fThis)
