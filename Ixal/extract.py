@@ -57,22 +57,22 @@ class TaskExtractTar(TaskExtractBase):
 
     def task(self):
         cmdReal = list(self.cmdTar)
-        if self.cmdTar[0] == 'bsdtar' and not 'bsdtar' in self.local: # Default fallback
+        if self.cmdTar[0] == 'bsdtar' and not 'bsdtar' in eik.local: # Default fallback
             cmdReal[0] = 'tar'
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
-            self.ex(self.cmdfmt(cmdReal, self.input().path, fw))
+            self.ex(eik.cmdfmt(cmdReal, self.input().path, fw))
             self.killRedundantDir(fw)
 
 class TaskExtract7z(TaskExtractBase):
     cmd7z = eik.ListParameter(significant=False, default=('7zz', '-y', 'x', '-o{1}', '{0}'))
 
     def doExtract(self, cmd, target):
-        self.ex(self.cmdfmt(cmd, self.input().path, target))
+        self.ex(eik.cmdfmt(cmd, self.input().path, target))
 
     def task(self):
         cmdReal = list(self.cmd7z)
-        if self.cmd7z[0] == '7zz' and not '7zz' in self.local: # Default fallback
+        if self.cmd7z[0] == '7zz' and not '7zz' in eik.local: # Default fallback
             cmdReal[0] = '7za'
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)

@@ -2,6 +2,7 @@
 import shutil
 from pathlib import Path
 
+import Eikthyr as eik
 from Ixal import Unit
 
 class WinPy(Unit):
@@ -15,14 +16,14 @@ class WinPy(Unit):
 
     def build(self):
         dirSrc = next(Path(self.src[0]).glob('python-*.amd64'))
-        with self.chdir(dirSrc):
+        with eik.chdir(dirSrc):
             shutil.rmtree('Doc', ignore_errors=True)
             shutil.rmtree('tcl', ignore_errors=True)
 
     def package(self):
         dirDest = Path('winpy')
         dirDest.mkdir(exist_ok=True, parents=True)
-        with self.chdir(dirDest):
+        with eik.chdir(dirDest):
             dirSrc = next(Path(self.src[0]).glob('python-*.amd64'))
             for f in dirSrc.iterdir():
                 shutil.move(f, '.')

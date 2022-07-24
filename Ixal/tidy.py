@@ -38,7 +38,7 @@ class TaskStrip(TaskPostProcessingBase):
             if f.is_dir(): continue
             if f.stat().st_mode & 0o0100 or re.match('.*\.(a|so|dll|lib|exe)(\.[^/]*)?$', f.name):
                 try:
-                    self.ex(self.cmd.strip['-pD', '-S', str(f)])
+                    self.ex(eik.cmd.strip['-pD', '-S', str(f)])
                 except:
                     continue
 

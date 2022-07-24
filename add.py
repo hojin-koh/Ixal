@@ -31,7 +31,7 @@ class TaskCreateDB(eik.Task):
         with self.output().pathWrite() as fw:
             with open('{}.tar'.format(fw), 'wb'):
                 pass
-            self.ex(self.cmd.zstd['--rm', '{}.tar'.format(fw), '-fo', fw])
+            self.ex(eik.cmd.zstd['--rm', '{}.tar'.format(fw), '-fo', fw])
 
 class TaskExtractDB(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the db file
@@ -46,7 +46,7 @@ class TaskExtractDB(eik.Task):
     def task(self):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
-            self.ex(self.cmd.bsdtar['xf', self.input().path, '--zstd', '-C', fw])
+            self.ex(eik.cmd.bsdtar['xf', self.input().path, '--zstd', '-C', fw])
 
 class TaskMakeDesc(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the package file
@@ -100,7 +100,7 @@ class TaskMakeFileList(eik.Task):
     def task(self):
         with self.output().fpWrite() as fpw:
             fpw.write('%FILES%\n')
-            with self.local.env(LANG='C'):
+            with eik.withEnv(LANG='C', LC_ALL='C'):
                 with cmd.bsdtar.popen(('tf', self.input().path, '--exclude=^.*'), encoding='utf-8') as p:
                     fpw.write(p.stdout.read())
 

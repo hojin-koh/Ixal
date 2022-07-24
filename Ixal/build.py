@@ -39,7 +39,7 @@ class TaskRunScript(eik.StampTask):
         dirCD.mkdir(parents=True, exist_ok=True)
         if (dirCD / '0').is_dir():
             dirCD = dirCD / '0'
-        with self.chdir(dirCD):
+        with eik.chdir(dirCD):
             getattr(self.unit.__class__, self.fun)(self.unit)
 
 class TaskRunPackageScript(eik.Task):
@@ -62,5 +62,5 @@ class TaskRunPackageScript(eik.Task):
     def task(self):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
-            with self.chdir(fw):
+            with eik.chdir(fw):
                 getattr(self.unit.__class__, self.fun)(self.unit)

@@ -19,7 +19,7 @@ import Eikthyr as eik
 
 from .logging import logger
 
-class MixinBuildUtilities(eik.MixinCmdUtilities):
+class MixinBuildUtilities(object):
     def patch(self, filePatch, lvl=None):
         if lvl != None:
             lvlseq = (lvl,)
@@ -47,10 +47,10 @@ class MixinBuildUtilities(eik.MixinCmdUtilities):
     def runConfigure(self, *args, prefix=None):
         if prefix == None:
             prefix = self.pathPrefix
-        self.ex(self.local['./configure'][('--prefix={}'.format(prefix), *args)])
+        self.ex(eik.local['./configure'][('--prefix={}'.format(prefix), *args)])
 
     def runMake(self, *args):
-        self.ex(self.cmd.make[('-j{:d}'.format(3), *args)])
+        self.ex(eik.cmd.make[('-j{:d}'.format(3), *args)])
 
     def runMakeInstall(self, path, *args):
-        self.ex(self.cmd.make[('DESTDIR={}/'.format(path), *args, 'install')])
+        self.ex(eik.cmd.make[('DESTDIR={}/'.format(path), *args, 'install')])

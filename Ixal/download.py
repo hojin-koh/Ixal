@@ -36,4 +36,4 @@ class TaskDownload(eik.Task):
 
     def task(self):
         with self.output().pathWrite() as fw:
-            self.ex(self.cmdfmt(self.cmdcurl, self.url, fw))
+            self.ex(eik.cmdfmt(self.cmdcurl, self.url, fw))

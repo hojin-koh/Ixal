@@ -69,14 +69,14 @@ class TaskPackageMTree(eik.Task):
         return eik.Target(self, Path(self.src.output().path).parent / '.MTREE')
 
     def task(self):
-        with self.chdir(Path(self.src.output().path).parent):
-            with self.local.env(LANG='C'):
+        with eik.chdir(Path(self.src.output().path).parent):
+            with eik.withEnv(LANG='C', LC_ALL='C'):
                 with self.output().pathWrite() as fw:
                     basename = str(Path(fw).name)
                     self.ex(
-                            self.cmd.bsdtar['-cf', '-', '--format=mtree', '--options=!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link', '--exclude', basename, '--exclude', '.MTREE', '.']
-                            | self.cmd.grep['-Ev', '^\\. ']
-                            | self.cmd.gzip['-nc', '-9'] > basename
+                            eik.cmd.bsdtar['-cf', '-', '--format=mtree', '--options=!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link', '--exclude', basename, '--exclude', '.MTREE', '.']
+                            | eik.cmd.grep['-Ev', '^\\. ']
+                            | eik.cmd.gzip['-nc', '-9'] > basename
                             )
         tstamp = Path(self.src.output().path).stat().st_mtime
         os.utime(self.output().path, (tstamp, tstamp))
@@ -94,7 +94,7 @@ class TaskPackageTar(eik.Task):
 
     def task(self):
         dirPkg = str(Path(self.src.output().path).parent)
-        with self.local.env(LANG='C'):
+        with eik.withEnv(LANG='C', LC_ALL='C'):
             with self.output().pathWrite() as fw:
-                self.ex(self.cmd.bsdtar['-cf', '{}.tar'.format(fw), '--strip-components', '1', '-C', dirPkg, '.'])
-                self.ex(self.cmd.zstd['--rsyncable', '-T0', '--ultra', '--rm', '-{:d}'.format(self.lvl), '{}.tar'.format(fw), '-fo', fw])
+                self.ex(eik.cmd.bsdtar['-cf', '{}.tar'.format(fw), '--strip-components', '1', '-C', dirPkg, '.'])
+                self.ex(eik.cmd.zstd['--rsyncable', '-T0', '--ultra', '--rm', '-{:d}'.format(self.lvl), '{}.tar'.format(fw), '-fo', fw])

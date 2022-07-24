@@ -20,9 +20,11 @@ from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
 from .tidy import TaskStrip, TaskPurge
 from .cmd import MixinBuildUtilities
 from .task import pickTask
+from .logging import logger
 
 import Eikthyr as eik
 import luigi as lg
+from plumbum import FG
 
 import re
 import inspect
@@ -59,6 +61,8 @@ class Unit(MixinBuildUtilities):
             ('.*\.exe$', TaskExtract7zOptional),
             ]
     aTaskPostProcess = [TaskPurge, TaskStrip]
+
+    logger = logger
 
     def __init__(self):
         if isinstance(self.name, str):
@@ -182,3 +186,8 @@ class Unit(MixinBuildUtilities):
 
     def package(self):
         pass
+
+    # Expected to get a plumbum object
+    def ex(self, chain):
+        self.logger.info("RUN: {}".format(chain))
+        chain & FG
