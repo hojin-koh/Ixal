@@ -167,8 +167,11 @@ class Unit(MixinBuildUtilities):
 
             # Cleanup/Tidying installed package
             aTaskPost = []
+            taskPostPrev = tPkg
             for cls in self.aTaskPostProcess:
-                aTaskPost.append(cls(tPkg, pathStamp=self.pathBuild))
+                taskThis = cls(tPkg, taskPostPrev, pathStamp=self.pathBuild)
+                aTaskPost.append(taskThis)
+                taskPostPrev = taskThis
 
             # Final touch and tarring things up
             tInfo = TaskPackageInfo(tPkg, aTaskPost, unitThis)

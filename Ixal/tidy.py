@@ -25,6 +25,7 @@ from pathlib import Path
 
 class TaskPostProcessingBase(eik.StampTask):
     src = eik.TaskParameter()
+    prev = eik.TaskParameter(significant=False)
     enabled = lg.BoolParameter(True)
 
     checkInputHash = True  # we DO actually care about the upstream status
@@ -68,7 +69,7 @@ class TaskPurge(TaskPostProcessingBase):
 
     def task(self):
         if not self.enabled: return
-        with eik.chdir(self.input().path):
+        with eik.chdir(self.src.output().path):
             for f in Path('.').glob('**/*'):
                 if not f.exists(): continue
                 if f.is_dir():
@@ -99,7 +100,7 @@ class TaskCompressMan(TaskPostProcessingBase):
 
     def task(self):
         if not self.enabled: return
-        with eik.chdir(self.input().path):
+        with eik.chdir(self.src.output().path):
             for d in Path('.').glob('**/*'):
                 if not d.exists() and not d.is_dir(): continue
                 if not self.reDir.match(str(d)): continue
