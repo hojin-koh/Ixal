@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
+from urllib.parse import urlparse
+
 import Eikthyr as eik
 import luigi as lg
-from urllib.parse import urlparse
-from pathlib import Path
 from plumbum import local
 
 

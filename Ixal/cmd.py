@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import Eikthyr as eik
 import plumbum.cmd as cmd
 from plumbum import local
-import Eikthyr as eik
 
 from .logging import logger
 

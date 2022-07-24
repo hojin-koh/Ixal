@@ -13,23 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .download import TaskDownload
-from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional
-from .build import TaskRunScript, TaskRunPackageScript
-from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
-from .tidy import TaskStrip, TaskPurge, TaskCompressMan
-from .cmd import MixinBuildUtilities
-from .task import pickTask
-from .logging import logger
+import re
+import inspect
+from copy import deepcopy
+from pathlib import Path
 
 import Eikthyr as eik
 import luigi as lg
 from plumbum import FG
 
-import re
-import inspect
-from copy import deepcopy
-from pathlib import Path
+from .build import TaskRunScript, TaskRunPackageScript
+from .cmd import MixinBuildUtilities
+from .download import TaskDownload
+from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional
+from .logging import logger
+from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
+from .task import pickTask
+from .tidy import TaskStrip, TaskPurge, TaskCompressMan
+
 
 class UnitConfig(lg.Config):
     pathBuild = eik.PathParameter('.build')

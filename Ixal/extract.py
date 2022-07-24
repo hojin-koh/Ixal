@@ -13,11 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import Eikthyr as eik
 import re
 import shutil
 import sys
 from pathlib import Path
+
+import Eikthyr as eik
 
 class TaskExtractBase(eik.Task):
     src = eik.TaskParameter()

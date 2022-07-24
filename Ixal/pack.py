@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import Eikthyr as eik
-import luigi as lg
-
 import os
 import time
 from pathlib import Path
+
+import Eikthyr as eik
+import luigi as lg
 
 class TaskPackageInfo(eik.Task):
     src = eik.TaskParameter()
