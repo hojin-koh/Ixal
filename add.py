@@ -31,17 +31,19 @@ if __name__ == '__main__':
         sys.exit(1)
     fileDB2 = '{}.files'.format(fileDB.removesuffix('.db'))
 
-    tDB = eik.InputTask(fileDB)
-    tDB2 = eik.InputTask(fileDB2)
+    tDB = eik.InputTask(fileDB2)
 
     tDir = Ixal.TaskExtractDB(tDB, Path(Ixal.UnitConfig().pathBuild) / '.db')
-    tDir2 = Ixal.TaskExtractDB(tDB2, Path(Ixal.UnitConfig().pathBuild) / '.files')
 
+    aTaskAdd = []
     for filePkg in sys.argv[2:]:
         with cmd.bsdtar.popen(('xOqf', filePkg, '--zstd', '.PKGINFO'), encoding='utf-8') as p:
             unitPkg = Ixal.Unit().loadPKGINFO(p.stdout)
-        tDesc = Ixal.TaskMakeRepoDesc(eik.InputTask(filePkg), unitPkg, tDir.output().path)
-        tDesc2 = Ixal.TaskMakeRepoDesc(eik.InputTask(filePkg), unitPkg, tDir2.output().path)
-        tFileList = Ixal.TaskMakeRepoFileList(eik.InputTask(filePkg), unitPkg, tDir2.output().path)
-        eik.run((tFileList, tDesc, tDesc2))
+        tDesc = Ixal.TaskMakeRepoDesc(eik.InputTask(filePkg), tDir, unitPkg)
+        tFileList = Ixal.TaskMakeRepoFileList(eik.InputTask(filePkg), tDir, unitPkg)
+        aTaskAdd += (tDesc, tFileList)
     
+    tClean = Ixal.TaskCleanupRepo(tDir, '{}.cleanup'.format(fileDB), prev=aTaskAdd)
+    tPack = Ixal.TaskPackDB(tDir, '{}.new'.format(fileDB), prev=(tClean,), dbonly=True)
+    tPack2 = Ixal.TaskPackDB(tDir, '{}.new'.format(fileDB2), prev=(tClean,))
+    eik.run((tPack, tPack2))

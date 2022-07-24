@@ -30,7 +30,7 @@ class TaskPostProcessingBase(eik.StampTask):
     checkInputHash = True  # we DO actually care about the upstream status
 
     def requires(self):
-        return self.src
+        return (self.src, self.prev)
 
 class TaskStrip(TaskPostProcessingBase):
     def task(self):

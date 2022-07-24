@@ -13,12 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import shutil
 import sys
+from functools import cmp_to_key
 from hashlib import md5, sha256
 from pathlib import Path
 
 import Eikthyr as eik
 from plumbum import cmd
+
+from .ver import vercmp
 
 class TaskExtractDB(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the db file
@@ -37,17 +41,17 @@ class TaskExtractDB(eik.Task):
 
 class TaskMakeRepoDesc(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the package file
+    outPath = eik.TaskParameter() # ExtractDB
     unit = eik.WhateverParameter(significant=False) # This is the unit with package information
-    outPath = eik.PathParameter()
 
     def requires(self):
-        return self.src
+        return (self.src, self.outPath)
 
     def generates(self):
-        return eik.Target(self, self.outPath / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'desc')
+        return eik.Target(self, Path(self.outPath.output().path) / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'desc')
 
     def task(self):
-        pathPkg = Path(self.input().path)
+        pathPkg = Path(self.src.output().path)
         with self.output().fpWrite() as fpw:
             fpw.write('%FILENAME%\n{}\n\n'.format(pathPkg.name))
             fpw.write('%NAME%\n{}\n\n'.format(self.unit.name))
@@ -75,21 +79,78 @@ class TaskMakeRepoDesc(eik.Task):
 
 class TaskMakeRepoFileList(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the package file
+    outPath = eik.TaskParameter() # ExtractDB
     unit = eik.WhateverParameter(significant=False)
-    outPath = eik.PathParameter()
 
     def requires(self):
-        return self.src
+        return (self.src, self.outPath)
 
     def generates(self):
-        return eik.Target(self, self.outPath / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'files')
+        return eik.Target(self, Path(self.outPath.output().path) / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'files')
 
     def task(self):
         with self.output().fpWrite() as fpw:
             fpw.write('%FILES%\n')
             with eik.withEnv(LANG='C', LC_ALL='C'):
-                with cmd.bsdtar.popen(('tf', self.input().path, '--exclude=^.*'), encoding='utf-8') as p:
+                with cmd.bsdtar.popen(('tf', self.src.output().path, '--exclude=^.*'), encoding='utf-8') as p:
                     fpw.write(p.stdout.read())
 
-# TODO: vercmp, cleanup, re-compress
-# awk '/^%VERSION%/ {getline; print; exit}' .build/.files/fzy-202201123-1/desc
+class TaskCleanupRepo(eik.Task):
+    src = eik.TaskParameter() # Repo directory
+    out = eik.PathParameter() # A list of file to delete
+    prev = eik.TaskListParameter(significant=False) # For execution order control
+
+    def requires(self):
+        return (self.src, self.prev)
+
+    def generates(self):
+        return eik.Target(self, self.out)
+
+    def task(self):
+        hVer = {}
+        hDir = {} # key="pkgname fullver"
+        hFile = {} # key="pkgname fullver"
+        aDelete = []
+        with eik.chdir(self.src.output().path):
+            for d in Path('.').iterdir():
+                if not d.is_dir(): continue
+                if not (d / 'desc').exists(): continue
+                with (d / 'desc').open() as fp:
+                    aInfo = [l.strip() for l in fp.readlines()]
+                fname = aInfo[aInfo.index('%FILENAME%')+1]
+                namePkg = aInfo[aInfo.index('%NAME%')+1]
+                verPkg = aInfo[aInfo.index('%VERSION%')+1]
+                if namePkg not in hVer:
+                    hVer[namePkg] = []
+                hVer[namePkg].append(verPkg)
+                hDir['{} {}'.format(namePkg, verPkg)] = str(d)
+                hFile['{} {}'.format(namePkg, verPkg)] = fname
+            for (namePkg, aVer) in hVer.items():
+                if len(aVer) == 1: continue
+                for v in sorted(aVer, key=cmp_to_key(vercmp), reverse=True)[1:]:
+                    self.logger.debug("Found outdated package: {}-{}".format(namePkg, v))
+                    shutil.rmtree(hDir['{} {}'.format(namePkg, v)])
+                    aDelete.append(hFile['{} {}'.format(namePkg, v)])
+        with self.output().fpWrite() as fpw:
+            for f in aDelete:
+                fpw.write('{}\n'.format(f))
+
+class TaskPackDB(eik.Task):
+    src = eik.TaskParameter() # Presumbly this is the extracted db directory
+    out = eik.PathParameter()
+    prev = eik.TaskListParameter(significant=False) # For execution order control
+    dbonly = eik.BoolParameter()
+
+    def requires(self):
+        return (self.src, self.prev)
+
+    def generates(self):
+        return eik.Target(self, self.out)
+
+    def task(self):
+        with self.output().pathWrite() as fw:
+            if self.dbonly:
+                objTar = eik.cmd.bsdtar['-cf', '-', '--exclude', 'files', '--strip-components', '1', '-C', self.src.output().path, '.']
+            else:
+                objTar = eik.cmd.bsdtar['-cf', '-', '--strip-components', '1', '-C', self.src.output().path, '.']
+            self.ex(objTar | eik.cmd.zstd['--rsyncable', '-cT0', '--ultra', '-22'] > fw)
