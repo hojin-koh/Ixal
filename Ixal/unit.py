@@ -17,7 +17,7 @@ from .download import TaskDownload
 from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional
 from .build import TaskRunScript, TaskRunPackageScript
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
-from .tidy import TaskStrip, TaskPurge
+from .tidy import TaskStrip, TaskPurge, TaskCompressMan
 from .cmd import MixinBuildUtilities
 from .task import pickTask
 from .logging import logger
@@ -60,7 +60,7 @@ class Unit(MixinBuildUtilities):
             ('.*\.(7z|zip)$', TaskExtract7z),
             ('.*\.exe$', TaskExtract7zOptional),
             ]
-    aTaskPostProcess = [TaskPurge, TaskStrip]
+    aTaskPostProcess = [TaskPurge, TaskStrip, TaskCompressMan]
 
     logger = logger
 
