@@ -1,4 +1,5 @@
 Eikthyr
+rpm-vercmp
 
 twine
 build

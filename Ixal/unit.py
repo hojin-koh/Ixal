@@ -30,6 +30,7 @@ from .logging import logger
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
 from .task import pickTask
 from .tidy import TaskStrip, TaskPurge, TaskCompressMan
+from .ver import getVersionString
 
 
 class UnitConfig(lg.Config):
@@ -78,13 +79,7 @@ class Unit(MixinBuildUtilities):
         self.pathPrefixRel = self.pathPrefix.relative_to('/')
 
     def getFullVersion(self, filename=True):
-        if self.epoch == 0:
-            return '{}-{}'.format(self.ver, self.rel)
-        else:
-            if filename:
-                return '{}^{}-{}'.format(self.epoch, self.ver, self.rel)
-            else:
-                return '{}:{}-{}'.format(self.epoch, self.ver, self.rel)
+        return getVersionString(self.ver, self.rel, self.epoch, filename=filename)
 
     def loadPKGINFO(self, fp):
         self.replaces = []
