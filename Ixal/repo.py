@@ -20,8 +20,8 @@ from hashlib import md5, sha256
 from pathlib import Path
 
 import Eikthyr as eik
-from plumbum import cmd
 
+from .unit import UnitConfig, Unit
 from .ver import vercmp
 
 class TaskExtractDB(eik.Task):
@@ -36,57 +36,46 @@ class TaskExtractDB(eik.Task):
 class TaskMakeRepoDesc(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the package file
     taskOut = eik.TaskParameter() # ExtractDB
-    unit = eik.WhateverParameter(significant=False) # This is the unit with package information
 
     def requires(self):
         return (self.src, self.taskOut)
 
     def generates(self):
-        return eik.Target(self, Path(self.taskOut.output().path) / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'desc')
+        pathOut = Path(self.taskOut.output().path) / self.src.output().path.rpartition('-')[0]
+        return (eik.Target(self, pathOut / 'desc'), eik.Target(self, pathOut / 'files'))
 
     def task(self):
         pathPkg = Path(self.input()[0].path)
-        with self.output().fpWrite() as fpw:
+        with eik.cmd.bsdtar.popen(('xOqf', str(pathPkg), '--zstd', '.PKGINFO'), encoding='utf-8') as p:
+            unitPkg = Ixal.Unit().loadPKGINFO(p.stdout)
+        with self.output()[0].fpWrite() as fpw:
             fpw.write('%FILENAME%\n{}\n\n'.format(pathPkg.name))
-            fpw.write('%NAME%\n{}\n\n'.format(self.unit.name))
-            fpw.write('%BASE%\n{}\n\n'.format(self.unit.base))
-            fpw.write('%VERSION%\n{}\n\n'.format(self.unit.fullver))
-            fpw.write('%DESC%\n{}\n\n'.format(self.unit.desc))
-            if len(self.unit.groups) > 0:
-                fpw.write('%GROUPS%\n{}\n\n'.format('\n'.join(self.unit.groups)))
+            fpw.write('%NAME%\n{}\n\n'.format(unitPkg.name))
+            fpw.write('%BASE%\n{}\n\n'.format(unitPkg.base))
+            fpw.write('%VERSION%\n{}\n\n'.format(unitPkg.fullver))
+            fpw.write('%DESC%\n{}\n\n'.format(unitPkg.desc))
+            if len(unitPkg.groups) > 0:
+                fpw.write('%GROUPS%\n{}\n\n'.format('\n'.join(unitPkg.groups)))
             fpw.write('%CSIZE%\n{}\n\n'.format(pathPkg.stat().st_size))
-            fpw.write('%ISIZE%\n{}\n\n'.format(self.unit.size))
+            fpw.write('%ISIZE%\n{}\n\n'.format(unitPkg.size))
 
             fpw.write('%MD5SUM%\n{}\n\n'.format(md5(pathPkg.read_bytes()).hexdigest()))
             fpw.write('%SHA256SUM%\n{}\n\n'.format(sha256(pathPkg.read_bytes()).hexdigest()))
 
-            if self.unit.url:
-                fpw.write('%URL%\n{}\n\n'.format(self.unit.url))
-            fpw.write('%ARCH%\n{}\n\n'.format(self.unit.arch))
-            fpw.write('%BUILDDATE%\n{}\n\n'.format(self.unit.builddate))
-            fpw.write('%PACKAGER%\n{}\n\n'.format(self.unit.packager))
+            if unitPkg.url:
+                fpw.write('%URL%\n{}\n\n'.format(unitPkg.url))
+            fpw.write('%ARCH%\n{}\n\n'.format(unitPkg.arch))
+            fpw.write('%BUILDDATE%\n{}\n\n'.format(unitPkg.builddate))
+            fpw.write('%PACKAGER%\n{}\n\n'.format(unitPkg.packager))
 
-            if len(self.unit.replaces) > 0:
-                fpw.write('%REPLACES%\n{}\n\n'.format('\n'.join(self.unit.replaces)))
-            if len(self.unit.depends) > 0:
-                fpw.write('%DEPENDS%\n{}\n\n'.format('\n'.join(self.unit.depends)))
-
-class TaskMakeRepoFileList(eik.Task):
-    src = eik.TaskParameter() # Presumbly this is the package file
-    taskOut = eik.TaskParameter() # ExtractDB
-    unit = eik.WhateverParameter(significant=False)
-
-    def requires(self):
-        return (self.src, self.taskOut)
-
-    def generates(self):
-        return eik.Target(self, Path(self.taskOut.output().path) / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'files')
-
-    def task(self):
-        with self.output().fpWrite() as fpw:
+            if len(unitPkg.replaces) > 0:
+                fpw.write('%REPLACES%\n{}\n\n'.format('\n'.join(unitPkg.replaces)))
+            if len(unitPkg.depends) > 0:
+                fpw.write('%DEPENDS%\n{}\n\n'.format('\n'.join(unitPkg.depends)))
+        with self.output()[1].fpWrite() as fpw:
             fpw.write('%FILES%\n')
             with eik.withEnv(LANG='C', LC_ALL='C'):
-                with cmd.bsdtar.popen(('tf', self.input()[0].path, '--exclude=^.*'), encoding='utf-8') as p:
+                with eik.cmd.bsdtar.popen(('tf', str(pathPkg), '--exclude=^.*'), encoding='utf-8') as p:
                     fpw.write(p.stdout.read())
 
 class TaskCleanupRepo(eik.Task):
@@ -134,3 +123,32 @@ class TaskPackDB(eik.Task):
             else:
                 objTar = eik.cmd.bsdtar['-cf', '-', '--strip-components', '1', '-C', self.input().path, '.']
             self.ex(objTar | eik.cmd.zstd['--rsyncable', '-cT0', '--ultra', '-22'] > fw)
+
+
+class TaskRepoAdd(eik.Task):
+    src = eik.TaskParameter() # The original "files" file
+    out = eik.PathParameter() # The output "db" file
+    out2 = eik.PathParameter() # The output "files" file
+    pkg = eik.TaskListParameter() # All packages
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        tDir = TaskExtractDB(self.src, Path(UnitConfig().pathBuild) / '.db')
+        aTaskDesc = [TaskMakeRepoDesc(p, tDir) for p in self.pkg]
+
+        tClean = TaskCleanupRepo(tDir, '{}.cleanup'.format(self.out), prev=aTaskDesc)
+        self.tPack = TaskPackDB(tDir, self.out, prev=(tClean,), dbonly=True)
+        self.tPack2 = TaskPackDB(tDir, self.out2, prev=(tClean,))
+
+    def requires(self):
+        return (self.src, self.pkg)
+
+    def generates(self):
+        return (self.tPack.output(), self.tPack2.output())
+
+    def task(self):
+        #eik.run((self.tPack, self.tPack2))
+        print("BEFORE YIELD")
+        yield self.tPack
+        print("AFTER YIELD")
+        #yield self.tPack2

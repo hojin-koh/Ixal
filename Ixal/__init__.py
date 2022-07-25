@@ -7,7 +7,8 @@ from . import unit
 from .unit import UnitConfig, Unit
 
 from . import repo
-from .repo import TaskExtractDB, TaskMakeRepoDesc, TaskMakeRepoFileList, TaskCleanupRepo, TaskPackDB
+from .repo import TaskExtractDB, TaskMakeRepoDesc, TaskCleanupRepo, TaskPackDB
+from .repo import TaskRepoAdd
 
 from . import ver
 from .ver import getVersionString, parseVersionString, vercmp
