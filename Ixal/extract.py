@@ -22,15 +22,9 @@ import Eikthyr as eik
 
 class TaskExtractBase(eik.Task):
     src = eik.TaskParameter()
-    pathOut = eik.PathParameter()
+    out = eik.PathParameter()
 
     checkOutputHash = False
-
-    def requires(self):
-        return self.src
-
-    def generates(self):
-        return eik.Target(self, self.pathOut)
 
     def killRedundantDir(self, path):
         aContent = list(Path(path).iterdir())

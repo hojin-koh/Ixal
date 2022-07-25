@@ -22,11 +22,7 @@ import luigi as lg
 
 class TaskPackageInfo(eik.Task):
     src = eik.TaskParameter()
-    srcs = eik.TaskListParameter(significant=False)
     unit = eik.WhateverParameter(significant=False)
-
-    def requires(self):
-        return (self.src, self.srcs)
 
     def generates(self):
         return eik.Target(self, Path(self.src.output().path) / '.PKGINFO')
@@ -34,7 +30,7 @@ class TaskPackageInfo(eik.Task):
     def task(self):
         tstamp = int(time.time())
         size = 0
-        for f in Path(self.src.output().path).glob('**/*'):
+        for f in Path(self.input().path).glob('**/*'):
             os.utime(f, (tstamp, tstamp))
             if f.is_file():
                 size += f.stat().st_size
@@ -62,14 +58,11 @@ class TaskPackageInfo(eik.Task):
 class TaskPackageMTree(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the .PKGINFO file
 
-    def requires(self):
-        return self.src
-
     def generates(self):
         return eik.Target(self, Path(self.src.output().path).parent / '.MTREE')
 
     def task(self):
-        with eik.chdir(Path(self.src.output().path).parent):
+        with eik.chdir(Path(self.input().path).parent):
             with eik.withEnv(LANG='C', LC_ALL='C'):
                 with self.output().pathWrite() as fw:
                     basename = str(Path(fw).name)
@@ -78,7 +71,7 @@ class TaskPackageMTree(eik.Task):
                             | eik.cmd.grep['-Ev', '^\\. ']
                             | eik.cmd.gzip['-nc', '-9'] > basename
                             )
-        tstamp = Path(self.src.output().path).stat().st_mtime
+        tstamp = Path(self.input().path).stat().st_mtime
         os.utime(self.output().path, (tstamp, tstamp))
 
 class TaskPackageTar(eik.Task):
@@ -86,14 +79,8 @@ class TaskPackageTar(eik.Task):
     out = eik.PathParameter()
     lvl = eik.IntParameter(19)
 
-    def requires(self):
-        return self.src
-
-    def generates(self):
-        return eik.Target(self, self.out)
-
     def task(self):
-        dirPkg = str(Path(self.src.output().path).parent)
+        dirPkg = str(Path(self.input().path).parent)
         with eik.withEnv(LANG='C', LC_ALL='C'):
             with self.output().pathWrite() as fw:
                 self.ex(eik.cmd.bsdtar['-cf', '{}.tar'.format(fw), '--strip-components', '1', '-C', dirPkg, '.'])

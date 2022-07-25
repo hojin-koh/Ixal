@@ -18,7 +18,7 @@ from pathlib import Path
 import Eikthyr as eik
 
 class TaskRunScript(eik.StampTask):
-    srcs = eik.TaskListParameter(significant=False)
+    src = eik.TaskListParameter(significant=False)
     unit = eik.WhateverParameter(significant=False)
     fun = eik.Parameter()
 
@@ -30,9 +30,6 @@ class TaskRunScript(eik.StampTask):
 
     def getCode(self):
         return getattr(self.unit.__class__, self.fun)
-
-    def requires(self):
-        return self.srcs
 
     def task(self):
         dirCD = Path(self.workdir)
@@ -52,12 +49,6 @@ class TaskRunPackageScript(eik.Task):
 
     def getCode(self):
         return getattr(self.unit.__class__, self.fun)
-
-    def requires(self):
-        return self.src
-
-    def generates(self):
-        return eik.Target(self, self.out)
 
     def task(self):
         with self.output().pathWrite() as fw:

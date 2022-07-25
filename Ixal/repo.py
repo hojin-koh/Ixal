@@ -28,12 +28,6 @@ class TaskExtractDB(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the db file
     out = eik.PathParameter()
 
-    def requires(self):
-        return self.src
-
-    def generates(self):
-        return eik.Target(self, self.out)
-
     def task(self):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
@@ -41,17 +35,17 @@ class TaskExtractDB(eik.Task):
 
 class TaskMakeRepoDesc(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the package file
-    outPath = eik.TaskParameter() # ExtractDB
+    taskOut = eik.TaskParameter() # ExtractDB
     unit = eik.WhateverParameter(significant=False) # This is the unit with package information
 
     def requires(self):
-        return (self.src, self.outPath)
+        return (self.src, self.taskOut)
 
     def generates(self):
-        return eik.Target(self, Path(self.outPath.output().path) / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'desc')
+        return eik.Target(self, Path(self.taskOut.output().path) / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'desc')
 
     def task(self):
-        pathPkg = Path(self.src.output().path)
+        pathPkg = Path(self.input()[0].path)
         with self.output().fpWrite() as fpw:
             fpw.write('%FILENAME%\n{}\n\n'.format(pathPkg.name))
             fpw.write('%NAME%\n{}\n\n'.format(self.unit.name))
@@ -79,39 +73,32 @@ class TaskMakeRepoDesc(eik.Task):
 
 class TaskMakeRepoFileList(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the package file
-    outPath = eik.TaskParameter() # ExtractDB
+    taskOut = eik.TaskParameter() # ExtractDB
     unit = eik.WhateverParameter(significant=False)
 
     def requires(self):
-        return (self.src, self.outPath)
+        return (self.src, self.taskOut)
 
     def generates(self):
-        return eik.Target(self, Path(self.outPath.output().path) / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'files')
+        return eik.Target(self, Path(self.taskOut.output().path) / '{}-{}'.format(self.unit.name, self.unit.fullver) / 'files')
 
     def task(self):
         with self.output().fpWrite() as fpw:
             fpw.write('%FILES%\n')
             with eik.withEnv(LANG='C', LC_ALL='C'):
-                with cmd.bsdtar.popen(('tf', self.src.output().path, '--exclude=^.*'), encoding='utf-8') as p:
+                with cmd.bsdtar.popen(('tf', self.input()[0].path, '--exclude=^.*'), encoding='utf-8') as p:
                     fpw.write(p.stdout.read())
 
 class TaskCleanupRepo(eik.Task):
     src = eik.TaskParameter() # Repo directory
     out = eik.PathParameter() # A list of file to delete
-    prev = eik.TaskListParameter(significant=False) # For execution order control
-
-    def requires(self):
-        return (self.src, self.prev)
-
-    def generates(self):
-        return eik.Target(self, self.out)
 
     def task(self):
         hVer = {}
         hDir = {} # key="pkgname fullver"
         hFile = {} # key="pkgname fullver"
         aDelete = []
-        with eik.chdir(self.src.output().path):
+        with eik.chdir(self.input().path):
             for d in Path('.').iterdir():
                 if not d.is_dir(): continue
                 if not (d / 'desc').exists(): continue
@@ -138,19 +125,12 @@ class TaskCleanupRepo(eik.Task):
 class TaskPackDB(eik.Task):
     src = eik.TaskParameter() # Presumbly this is the extracted db directory
     out = eik.PathParameter()
-    prev = eik.TaskListParameter(significant=False) # For execution order control
     dbonly = eik.BoolParameter()
-
-    def requires(self):
-        return (self.src, self.prev)
-
-    def generates(self):
-        return eik.Target(self, self.out)
 
     def task(self):
         with self.output().pathWrite() as fw:
             if self.dbonly:
-                objTar = eik.cmd.bsdtar['-cf', '-', '--exclude', 'files', '--strip-components', '1', '-C', self.src.output().path, '.']
+                objTar = eik.cmd.bsdtar['-cf', '-', '--exclude', 'files', '--strip-components', '1', '-C', self.input().path, '.']
             else:
-                objTar = eik.cmd.bsdtar['-cf', '-', '--strip-components', '1', '-C', self.src.output().path, '.']
+                objTar = eik.cmd.bsdtar['-cf', '-', '--strip-components', '1', '-C', self.input().path, '.']
             self.ex(objTar | eik.cmd.zstd['--rsyncable', '-cT0', '--ultra', '-22'] > fw)

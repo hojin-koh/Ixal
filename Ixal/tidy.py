@@ -24,18 +24,14 @@ import luigi as lg
 
 class TaskPostProcessingBase(eik.StampTask):
     src = eik.TaskParameter()
-    prev = eik.TaskParameter(significant=False)
     enabled = lg.BoolParameter(True)
 
     checkInputHash = True  # we DO actually care about the upstream status
 
-    def requires(self):
-        return (self.src, self.prev)
-
 class TaskStrip(TaskPostProcessingBase):
     def task(self):
         if not self.enabled: return
-        for f in Path(self.src.output().path).glob('**/*'):
+        for f in Path(self.input().path).glob('**/*'):
             if f.is_dir(): continue
             if f.stat().st_mode & 0o0100 or re.match('.*\.(a|so|dll|lib|exe)(\.[^/]*)?$', f.name):
                 try:
@@ -68,7 +64,7 @@ class TaskPurge(TaskPostProcessingBase):
 
     def task(self):
         if not self.enabled: return
-        with eik.chdir(self.src.output().path):
+        with eik.chdir(self.input().path):
             for f in Path('.').glob('**/*'):
                 if not f.exists(): continue
                 if f.is_dir():
@@ -99,7 +95,7 @@ class TaskCompressMan(TaskPostProcessingBase):
 
     def task(self):
         if not self.enabled: return
-        with eik.chdir(self.src.output().path):
+        with eik.chdir(self.input().path):
             for d in Path('.').glob('**/*'):
                 if not d.exists() and not d.is_dir(): continue
                 if not self.reDir.match(str(d)): continue

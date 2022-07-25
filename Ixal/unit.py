@@ -165,12 +165,12 @@ class Unit(MixinBuildUtilities):
             aTaskPost = []
             taskPostPrev = tPkg
             for cls in self.aTaskPostProcess:
-                taskThis = cls(tPkg, taskPostPrev, pathStamp=self.pathBuild)
+                taskThis = cls(tPkg, pathStamp=self.pathBuild, prev=(taskPostPrev,))
                 aTaskPost.append(taskThis)
                 taskPostPrev = taskThis
 
             # Final touch and tarring things up
-            tInfo = TaskPackageInfo(tPkg, aTaskPost, unitThis)
+            tInfo = TaskPackageInfo(tPkg, unitThis, prev=aTaskPost)
             tMTree = TaskPackageMTree(tInfo)
             tPack = TaskPackageTar(tMTree, self.pathOutput / '{}-{}-{}.pkg.tar.zst'.format(name, self.fullver, self.arch))
             aTaskFinal.append(tPack)
