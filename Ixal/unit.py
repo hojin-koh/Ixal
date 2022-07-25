@@ -35,6 +35,7 @@ from .ver import getVersionString
 
 class UnitConfig(lg.Config):
     pathBuild = eik.PathParameter('.build')
+    pathCache = eik.PathParameter('.cache')
     pathPrefix = eik.PathParameter('/opt')
     pathOutput = eik.PathParameter('.pkg')
     packager = eik.Parameter('Unknown')
@@ -72,7 +73,7 @@ class Unit(MixinBuildUtilities):
         else:
             self.base = self.name[0]
         self.fullver = self.getFullVersion()
-        self.pathCache = Path(UnitConfig().pathBuild).resolve() / '.cache'
+        self.pathCache = Path(UnitConfig().pathCache).resolve()
         self.pathBuild = Path(UnitConfig().pathBuild).resolve() / 'src-{}-{}'.format(self.base, self.fullver)
         self.pathOutput = Path(UnitConfig().pathOutput).resolve()
         self.pathPrefix = Path(UnitConfig().pathPrefix).resolve()
