@@ -47,7 +47,7 @@ class TaskMakeRepoDesc(eik.Task):
     def task(self):
         pathPkg = Path(self.input()[0].path)
         with eik.cmd.bsdtar.popen(('xOqf', str(pathPkg), '--zstd', '.PKGINFO'), encoding='utf-8') as p:
-            unitPkg = Ixal.Unit().loadPKGINFO(p.stdout)
+            unitPkg = Unit().loadPKGINFO(p.stdout)
         with self.output()[0].fpWrite() as fpw:
             fpw.write('%FILENAME%\n{}\n\n'.format(pathPkg.name))
             fpw.write('%NAME%\n{}\n\n'.format(unitPkg.name))
@@ -147,8 +147,5 @@ class TaskRepoAdd(eik.Task):
         return (self.tPack.output(), self.tPack2.output())
 
     def task(self):
-        #eik.run((self.tPack, self.tPack2))
-        print("BEFORE YIELD")
         yield self.tPack
-        print("AFTER YIELD")
-        #yield self.tPack2
+        yield self.tPack2
