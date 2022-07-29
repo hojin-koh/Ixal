@@ -136,15 +136,15 @@ class TaskRepoAdd(eik.Task):
         tDir = TaskExtractDB(self.src, Path(UnitConfig().pathBuild) / '.db')
         aTaskDesc = [TaskMakeRepoDesc(p, tDir) for p in self.pkg]
 
-        tClean = TaskCleanupRepo(tDir, '{}.cleanup'.format(self.out), prev=aTaskDesc)
-        self.tPack = TaskPackDB(tDir, self.out, prev=(tClean,), dbonly=True)
-        self.tPack2 = TaskPackDB(tDir, self.out2, prev=(tClean,))
+        self.tClean = TaskCleanupRepo(tDir, '{}.cleanup'.format(self.out), prev=aTaskDesc)
+        self.tPack = TaskPackDB(tDir, self.out, prev=(self.tClean,), dbonly=True)
+        self.tPack2 = TaskPackDB(tDir, self.out2, prev=(self.tClean,))
 
     def requires(self):
         return (self.src, self.pkg)
 
     def generates(self):
-        return (self.tPack.output(), self.tPack2.output())
+        return (self.tPack.output(), self.tPack2.output(), self.tClean.output())
 
     def task(self):
         yield self.tPack
