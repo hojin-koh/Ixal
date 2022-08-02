@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -26,8 +27,12 @@ class TaskDownload(eik.Task):
     pathCache = eik.PathParameter(significant=False)
     cmdcurl = eik.ListParameter(significant=False, default=('curl', '-qfLC', '-', '--ftp-pasv', '--retry', '5', '--retry-delay', '5', '-o', '{1}', '{0}'))
 
-    def parseFileName(self):
-        p = Path(urlparse(self.url).path)
+    def parseFileName(self): # This is purely heuristic...
+        url = urlparse(self.url)
+        if re.search(R'\.[^.]{2,5}$', url.query):
+            p = Path(url.query.rpartition('=')[-1])
+        else:
+            p = Path(url.path)
         if p.name == 'download':
             p = p.parent
         return p.name

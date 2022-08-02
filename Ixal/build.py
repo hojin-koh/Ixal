@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from inspect import signature
 from pathlib import Path
 
 import Eikthyr as eik
@@ -54,4 +55,9 @@ class TaskRunPackageScript(eik.Task):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             with eik.chdir(fw):
-                getattr(self.unit.__class__, self.fun)(self.unit)
+                func = getattr(self.unit.__class__, self.fun)
+                params = signature(func).parameters
+                if len(params) == 1:
+                    func(self.unit)
+                else:
+                    func(self.unit, fw)

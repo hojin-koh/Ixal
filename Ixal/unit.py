@@ -25,7 +25,7 @@ from plumbum import FG
 from .build import TaskRunScript, TaskRunPackageScript
 from .cmd import MixinBuildUtilities
 from .download import TaskDownload
-from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional
+from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional, TaskExtractMSI
 from .logging import logger
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
 from .task import pickTask
@@ -60,6 +60,7 @@ class Unit(MixinBuildUtilities):
             ]
     mTaskExtract = [
             ('.*\.tar(\.[^.]+)?$', TaskExtractTar),
+            ('.*\.msi$', TaskExtractMSI),
             ('.*\.(7z|zip)$', TaskExtract7z),
             ('.*\.exe$', TaskExtract7zOptional),
             ]

@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import shutil
+import sys
+from pathlib import Path
+
 import Eikthyr as eik
 import plumbum.cmd as cmd
 from plumbum import local
@@ -49,8 +53,41 @@ class MixinBuildUtilities(object):
             prefix = self.pathPrefix
         self.ex(eik.local['./configure'][('--prefix={}'.format(prefix), *args)])
 
+    def runCMake(self, *args, prefix=None):
+        if prefix == None:
+            prefix = self.pathPrefix
+        aParam = ['-DCMAKE_INSTALL_PREFIX={}'.format(prefix), '-GNinja', '-DCMAKE_BUILD_TYPE=Release', *args]
+        if len(args) > 0 and not args[-1].startswith('-'):
+            aParam.append('.')
+        self.ex(eik.local['cmake'][aParam])
+
+    def runNinja(self, *args):
+        self.ex(eik.cmd.ninja[('-j', '{:d}'.format(3), *args)])
+
     def runMake(self, *args):
         self.ex(eik.cmd.make[('-j{:d}'.format(3), *args)])
 
     def runMakeInstall(self, path, *args):
         self.ex(eik.cmd.make[('DESTDIR={}/'.format(path), *args, 'install')])
+
+    def writeTemplate(self, dest, src, executable=True):
+        try:
+            text = Path(src).read_text('utf-8')
+        except:
+            text = src.strip()
+        dest = Path(dest)
+        dest.write_text(text
+                .replace('{{PREFIX}}', str(self.pathPrefix))
+                .replace('{{PKGVER}}', str(self.ver))
+                ,'utf-8')
+        if executable:
+            dest.chmod(0o755)
+
+    def retrieveFromSystem(self, dest, program):
+        pathFull = cmd.which(program).strip()
+        shutil.copy(pathFull, dest)
+        if sys.platform == "cygwin":
+            for f in (cmd.ldd[pathFull] | cmd.awk[R'/bin\/cyg/ {print $3}'])().split():
+                shutil.copy(f, dest)
+        else:
+            raise "Not implemented"

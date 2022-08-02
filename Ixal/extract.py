@@ -27,13 +27,14 @@ class TaskExtractBase(eik.Task):
     checkOutputHash = False
 
     def killRedundantDir(self, path):
-        aContent = list(Path(path).iterdir())
-        if len(aContent) > 1 or not aContent[0].is_dir():
-            return
-        for p in aContent[0].iterdir():
-            shutil.move(p, path)
-        if len(list(aContent[0].iterdir())) == 0:
-            aContent[0].rmdir()
+        while True:
+            aContent = list(Path(path).iterdir())
+            if len(aContent) > 1 or not aContent[0].is_dir():
+                return
+            for p in aContent[0].iterdir():
+                shutil.move(p, path)
+            if len(list(aContent[0].iterdir())) == 0:
+                aContent[0].rmdir()
 
     def normalizePerm(self, path):
         if sys.platform == "cygwin": # Special perm normalization
@@ -59,6 +60,24 @@ class TaskExtractTar(TaskExtractBase):
             self.ex(eik.cmdfmt(cmdReal, self.input().path, fw))
             self.killRedundantDir(fw)
 
+class TaskExtractMSI(TaskExtractBase):
+    cmdMSI = eik.ListParameter(significant=False, default=('msiexec', '/a', '{0}', '/qb', 'TARGETDIR={1}'))
+
+    def doExtract(self, cmd, target):
+        try:
+            pathPackage = eik.cmd.cygpath('-aw', self.input().path).strip()
+            pathTarget = eik.cmd.cygpath('-aw', target).strip()
+            self.ex(eik.cmdfmt(cmd, pathPackage, pathTarget))
+        except:
+            shutil.copy(self.input().path, target)
+
+    def task(self):
+        with self.output().pathWrite() as fw:
+            Path(fw).mkdir(parents=True, exist_ok=True)
+            self.doExtract(self.cmdMSI, fw)
+            self.killRedundantDir(fw)
+            self.normalizePerm(fw)
+
 class TaskExtract7z(TaskExtractBase):
     cmd7z = eik.ListParameter(significant=False, default=('7zz', '-y', 'x', '-o{1}', '{0}'))
 
@@ -68,7 +87,10 @@ class TaskExtract7z(TaskExtractBase):
     def task(self):
         cmdReal = list(self.cmd7z)
         if self.cmd7z[0] == '7zz' and not '7zz' in eik.local: # Default fallback
-            cmdReal[0] = '7za'
+            if '7z' in eik.local:
+                cmdReal[0] = '7z'
+            elif '7za' in eik.local:
+                cmdReal[0] = '7za'
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             self.doExtract(cmdReal, fw)
@@ -79,5 +101,10 @@ class TaskExtract7zOptional(TaskExtract7z):
     def doExtract(self, cmd, target):
         try:
             super().doExtract(cmd, target)
+            # If everything starts with a dot, we've accidently killed an working executable...
+            if all(f.name.startswith('.') for f in Path(target).iterdir()) or (Path(target)/'COFF_SYMBOLS').exists():
+                shutil.rmtree(target)
+                Path(target).mkdir(parents=True, exist_ok=True)
+                raise "Bad decompression"
         except:
             shutil.copy(self.input().path, target)

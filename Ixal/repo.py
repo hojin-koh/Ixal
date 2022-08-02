@@ -41,7 +41,7 @@ class TaskMakeRepoDesc(eik.Task):
         return (self.src, self.taskOut)
 
     def generates(self):
-        pathOut = Path(self.taskOut.output().path) / self.src.output().path.rpartition('-')[0]
+        pathOut = Path(self.taskOut.output().path) / Path(self.src.output().path).name.rpartition('-')[0]
         return (eik.Target(self, pathOut / 'desc'), eik.Target(self, pathOut / 'files'))
 
     def task(self):
@@ -126,9 +126,9 @@ class TaskPackDB(eik.Task):
 
 
 class TaskRepoAdd(eik.Task):
-    src = eik.TaskParameter() # The original "files" file
     out = eik.PathParameter() # The output "db" file
     out2 = eik.PathParameter() # The output "files" file
+    src = eik.TaskParameter() # The original "files" file
     pkg = eik.TaskListParameter() # All packages
 
     def __init__(self, *args, **kwargs):
@@ -144,7 +144,11 @@ class TaskRepoAdd(eik.Task):
         return (self.src, self.pkg)
 
     def generates(self):
-        return (self.tPack.output(), self.tPack2.output(), self.tClean.output())
+        return (
+                eik.Target(self, self.tPack.output().path),
+                eik.Target(self, self.tPack2.output().path),
+                eik.Target(self, self.tClean.output().path),
+                )
 
     def task(self):
         yield self.tPack
