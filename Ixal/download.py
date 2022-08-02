@@ -34,6 +34,13 @@ class TaskDownload(eik.Task):
             p = Path(url.query.rpartition('=')[-1])
         else:
             p = Path(url.path)
+        # Github archive special heuristic
+        if url.netloc == 'github.com' and '/archive/' in url.path:
+            p = Path('{}-{}'.format(p.parts[p.parts.index('archive')-1], p.name))
+        # Github release special heuristic
+        if url.netloc == 'github.com' and '/releases/' in url.path:
+            p = Path('{}-{}-{}'.format(p.parts[p.parts.index('releases')-1], p.parts[-2], p.name))
+        # Sourceforge special heuristic
         if p.name == 'download':
             p = p.parent
         return p.name
