@@ -118,32 +118,38 @@ class Unit(MixinBuildUtilities):
     def make(self):
         urls = self.src
         self.src = []
-        if isinstance(urls, str):
+        if isinstance(urls, str) or isinstance(urls, dict):
             urls = (urls,)
         lfiles = self.lsrc
         self.lsrc = []
-        if isinstance(lfiles, str):
+        if isinstance(lfiles, str) or isinstance(lfiles, dict):
             lfiles = (lfiles,)
 
         aTaskSource = []
         for (i,f) in enumerate(urls):
-            tDl = pickTask(self.mTaskDownload, f)(f, self.pathCache)
-            clsExtract = pickTask(self.mTaskExtract, tDl.output().path)
-            if clsExtract == None:
+            if isinstance(f, str):
+                f = {'url': f}
+            tDl = pickTask(self.mTaskDownload, f['url'])(f['url'], self.pathCache, filename=f.get('filename', ''))
+            if 'extract' not in f:
+                f['extract'] = pickTask(self.mTaskExtract, tDl.output().path)
+            if f['extract'] == None:
                 aTaskSource.append(tDl)
                 self.src.append(tDl.output().path)
             else:
-                tEx = clsExtract(tDl, self.pathBuild / '{:d}'.format(i))
+                tEx = f['extract'](tDl, self.pathBuild / '{:d}'.format(i))
                 aTaskSource.append(tEx)
                 self.src.append(tEx.output().path)
         for (i,f) in enumerate(lfiles):
-            fThis = Path(inspect.getfile(self.__class__)).parent / f
-            clsExtract = pickTask(self.mTaskExtract, fThis)
-            if clsExtract == None:
+            if isinstance(f, str):
+                f = {'url': f}
+            fThis = Path(inspect.getfile(self.__class__)).parent / f['url']
+            if 'extract' not in f:
+                f['extract'] = pickTask(self.mTaskExtract, fThis)
+            if f['extract'] == None:
                 aTaskSource.append(eik.InputTask(fThis))
                 self.lsrc.append(fThis)
             else:
-                tEx = clsExtract(eik.InputTask(fThis), self.pathBuild / 'L{:d}'.format(i))
+                tEx = f['extract'](eik.InputTask(fThis), self.pathBuild / 'L{:d}'.format(i))
                 aTaskSource.append(tEx)
                 self.lsrc.append(tEx.output().path)
 

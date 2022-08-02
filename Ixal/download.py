@@ -26,6 +26,7 @@ class TaskDownload(eik.Task):
     url = eik.Parameter()
     pathCache = eik.PathParameter(significant=False)
     cmdcurl = eik.ListParameter(significant=False, default=('curl', '-qfLC', '-', '--ftp-pasv', '--retry', '5', '--retry-delay', '5', '-o', '{1}', '{0}'))
+    filename = eik.Parameter('', significant=False)
 
     def parseFileName(self): # This is purely heuristic...
         url = urlparse(self.url)
@@ -38,7 +39,10 @@ class TaskDownload(eik.Task):
         return p.name
 
     def generates(self):
-        return eik.Target(self, Path(self.pathCache) / self.parseFileName())
+        if self.filename == '':
+            return eik.Target(self, Path(self.pathCache) / self.parseFileName())
+        else:
+            return eik.Target(self, Path(self.pathCache) / self.filename)
 
     def task(self):
         with self.output().pathWrite() as fw:
