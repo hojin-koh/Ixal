@@ -91,3 +91,13 @@ class MixinBuildUtilities(object):
                 shutil.copy(f, dest)
         else:
             raise "Not implemented"
+
+    def makePythonVEnv(self, prefix, *pkgs):
+        self.ex(eik.cmd.python3['-m', 'venv', 'venv'])
+        pathVEnv = Path('venv').resolve()
+        with eik.withEnv(VIRTUAL_ENV=str(pathVEnv)):
+            for p in pkgs:
+                self.ex(eik.local[str(pathVEnv/'bin'/'pip')]['install', '--require-virtualenv', p])
+            self.ex(eik.local[str(pathVEnv/'bin'/'pip')]['uninstall', '-y', '--require-virtualenv', 'pip', 'setuptools'])
+        for f in (pathVEnv / 'bin').iterdir():
+            self.ex(eik.cmd.sed['-i', 's@{}@{}@g'.format(str(pathVEnv), str(prefix)), str(f)])
