@@ -79,6 +79,12 @@ class Unit(MixinBuildUtilities):
         self.pathOutput = Path(UnitConfig().pathOutput).resolve()
         self.pathPrefix = Path(UnitConfig().pathPrefix).resolve()
         self.pathPrefixRel = self.pathPrefix.relative_to('/')
+        self.doSanityCheck()
+
+    def doSanityCheck(self):
+        if '-' in self.ver or '-' in self.rel:
+            self.logger.error('No dash allowed in version number')
+            raise
 
     def getFullVersion(self, filename=True):
         return getVersionString(self.ver, self.rel, self.epoch, filename=filename)
