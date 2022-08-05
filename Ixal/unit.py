@@ -64,7 +64,7 @@ class Unit(MixinBuildUtilities):
             ('.*\.(7z|zip)$', TaskExtract7z),
             ('.*\.exe$', TaskExtract7zOptional),
             ]
-    aTaskPostProcess = [TaskPurge, TaskStrip, TaskCompressMan]
+    aTaskPostProcess = [TaskPurge, TaskCompressMan, TaskStrip]
 
     extension = 'pkg.tar.zst'
     environ = {}
