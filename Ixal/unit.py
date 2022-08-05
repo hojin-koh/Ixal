@@ -66,6 +66,8 @@ class Unit(MixinBuildUtilities):
             ]
     aTaskPostProcess = [TaskPurge, TaskStrip, TaskCompressMan]
 
+    extension = 'pkg.tar.zst'
+    environ = {}
     logger = logger
 
     def __init__(self):
@@ -186,7 +188,7 @@ class Unit(MixinBuildUtilities):
             # Final touch and tarring things up
             tInfo = TaskPackageInfo(tPkg, unitThis, prev=aTaskPost)
             tMTree = TaskPackageMTree(tInfo)
-            tPack = TaskPackageTar(tMTree, self.pathOutput / '{}-{}-{}.pkg.tar.zst'.format(name, self.fullver, self.arch))
+            tPack = TaskPackageTar(tMTree, self.pathOutput / '{}-{}-{}.{}'.format(name, self.fullver, self.arch, self.extension))
             aTaskFinal.append(tPack)
 
         eik.run(aTaskFinal)

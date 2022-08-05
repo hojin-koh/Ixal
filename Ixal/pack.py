@@ -15,6 +15,7 @@
 
 import os
 import time
+import shutil
 from pathlib import Path
 
 import Eikthyr as eik
@@ -84,4 +85,8 @@ class TaskPackageTar(eik.Task):
         with eik.withEnv(LANG='C', LC_ALL='C'):
             with self.output().pathWrite() as fw:
                 self.ex(eik.cmd.bsdtar['-cf', '{}.tar'.format(fw), '--strip-components', '1', '-C', dirPkg, '.'])
-                self.ex(eik.cmd.zstd['--rsyncable', '-T0', '--ultra', '--rm', '-{:d}'.format(self.lvl), '{}.tar'.format(fw), '-fo', fw])
+                if self.output().path.endswith('.gz'):
+                    self.ex(eik.cmd.gzip['--rsyncable', '-9', '{}.tar'.format(fw)])
+                    shutil.move('{}.tar.gz'.format(fw), fw)
+                else:
+                    self.ex(eik.cmd.zstd['--rsyncable', '-T0', '--ultra', '--rm', '-{:d}'.format(self.lvl), '{}.tar'.format(fw), '-fo', fw])
