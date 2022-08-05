@@ -191,7 +191,8 @@ class Unit(MixinBuildUtilities):
             tPack = TaskPackageTar(tMTree, self.pathOutput / '{}-{}-{}.{}'.format(name, self.fullver, self.arch, self.extension))
             aTaskFinal.append(tPack)
 
-        eik.run(aTaskFinal)
+        with eik.withEnv(**self.environ):
+            eik.run(aTaskFinal)
 
     def prepare(self):
         pass
