@@ -101,4 +101,9 @@ class TaskCompressMan(TaskPostProcessingBase):
                 if not self.reDir.match(str(d)): continue
                 for f in d.iterdir():
                     if f.is_dir() or not self.reMan.match(f.name): continue
+                    if f.is_symlink():
+                        tgt = f.readlink()
+                        f.unlink()
+                        Path('{}.gz'.format(str(f))).symlink_to('{}.gz'.format(str(tgt)))
+                        continue
                     self.ex(eik.cmd.gzip['-n9', str(f)])
