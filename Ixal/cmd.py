@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -57,18 +58,25 @@ class MixinBuildUtilities(object):
         if prefix == None:
             prefix = self.pathPrefix
         aParam = ['-DCMAKE_INSTALL_PREFIX={}'.format(prefix), '-GNinja', '-DCMAKE_BUILD_TYPE=Release', *args]
-        if len(args) > 0 and not args[-1].startswith('-'):
+        if 'CMAKE_PREFIX_PATH' in os.environ:
+            aParam.append('-DCMAKE_PREFIX_PATH={}'.format(os.environ['CMAKE_PREFIX_PATH']))
+        if len(args) == 0 or (len(args) > 0 and args[-1].startswith('-')):
             aParam.append('.')
         self.ex(eik.local['cmake'][aParam])
 
     def runNinja(self, *args):
         self.ex(eik.cmd.ninja[('-j', '{:d}'.format(3), *args)])
 
+    def runNinjaInstall(self, path, *args):
+        with eik.withEnv(DESTDIR='{}/'.format(path)):
+            self.ex(eik.cmd.ninja[(*args, 'install')])
+
     def runMake(self, *args):
         self.ex(eik.cmd.make[('-j{:d}'.format(3), *args)])
 
     def runMakeInstall(self, path, *args):
-        self.ex(eik.cmd.make[('DESTDIR={}/'.format(path), *args, 'install')])
+        with eik.withEnv(DESTDIR='{}/'.format(path)):
+            self.ex(eik.cmd.make[('DESTDIR={}/'.format(path), *args, 'install')])
 
     def writeTemplate(self, dest, src, executable=True):
         try:
