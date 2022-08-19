@@ -24,7 +24,7 @@ class TaskExtractBase(eik.Task):
     src = eik.TaskParameter()
     out = eik.PathParameter()
 
-    checkOutputHash = False
+    simplifiedOutputHash = True
 
     def killRedundantDir(self, path):
         while True:

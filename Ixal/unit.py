@@ -144,7 +144,7 @@ class Unit(MixinBuildUtilities):
                 aTaskSource.append(tDl)
                 self.src.append(tDl.output().path)
             else:
-                tEx = f['extract'](tDl, self.pathBuild / '{:d}'.format(i))
+                tEx = f['extract'](tDl, self.pathBuild / '{:d}'.format(i), canChange=True)
                 aTaskSource.append(tEx)
                 self.src.append(tEx.output().path)
         for (i,f) in enumerate(lfiles):
@@ -154,15 +154,15 @@ class Unit(MixinBuildUtilities):
             if 'extract' not in f:
                 f['extract'] = pickTask(self.mTaskExtract, fThis)
             if f['extract'] == None:
-                aTaskSource.append(eik.InputTask(fThis))
+                aTaskSource.append(eik.InputTask(fThis, canChange=True))
                 self.lsrc.append(fThis)
             else:
-                tEx = f['extract'](eik.InputTask(fThis), self.pathBuild / 'L{:d}'.format(i))
+                tEx = f['extract'](eik.InputTask(fThis, canChange=True), self.pathBuild / 'L{:d}'.format(i), canChange=True)
                 aTaskSource.append(tEx)
                 self.lsrc.append(tEx.output().path)
 
         tPre = TaskRunScript(aTaskSource, self, 'prepare', pathStamp=self.pathBuild)
-        tBuild = TaskRunScript((tPre,), self, 'build', pathStamp=self.pathBuild)
+        tBuild = TaskRunScript(aTaskSource, self, 'build', pathStamp=self.pathBuild, prev=(tPre,))
 
         aTaskFinal = []
         aNames = self.name
@@ -173,17 +173,15 @@ class Unit(MixinBuildUtilities):
             unitThis.name = name
             pathPkg = Path(UnitConfig().pathBuild).resolve() / 'pkg-{}-{}'.format(name, self.fullver)
             if len(aNames) == 1:
-                tPkg = TaskRunPackageScript(tBuild, unitThis, 'package', pathPkg)
+                tPkg = TaskRunPackageScript(aTaskSource, unitThis, 'package', pathPkg, prev=(tBuild,))
             else:
-                tPkg = TaskRunPackageScript(tBuild, unitThis, 'package{:d}'.format(i), pathPkg)
+                tPkg = TaskRunPackageScript(aTaskSource, unitThis, 'package{:d}'.format(i), pathPkg, prev=(tBuild,))
 
             # Cleanup/Tidying installed package
             aTaskPost = []
-            taskPostPrev = tPkg
             for cls in self.aTaskPostProcess:
-                taskThis = cls(tPkg, pathStamp=self.pathBuild, prev=(taskPostPrev,))
+                taskThis = cls(tPkg, pathStamp=self.pathBuild, prev=aTaskPost)
                 aTaskPost.append(taskThis)
-                taskPostPrev = taskThis
 
             # Final touch and tarring things up
             tInfo = TaskPackageInfo(tPkg, unitThis, prev=aTaskPost)

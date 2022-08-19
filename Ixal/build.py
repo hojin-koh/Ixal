@@ -24,6 +24,7 @@ class TaskRunScript(eik.StampTask):
     fun = eik.Parameter()
 
     checkInputHash = True  # we DO actually care about the upstream status
+    ReRunAfterDeps = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,13 +41,13 @@ class TaskRunScript(eik.StampTask):
         with eik.chdir(dirCD):
             getattr(self.unit.__class__, self.fun)(self.unit)
 
-class TaskRunPackageScript(eik.Task):
+class TaskRunPackageScript(eik.NITask):
     src = eik.TaskParameter(significant=False)
     unit = eik.WhateverParameter(significant=False)
     fun = eik.Parameter()
     out = eik.PathParameter()
 
-    checkOutputHash = False
+    simplifiedOutputHash = True
 
     def getCode(self):
         return getattr(self.unit.__class__, self.fun)

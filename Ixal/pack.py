@@ -21,7 +21,7 @@ from pathlib import Path
 import Eikthyr as eik
 import luigi as lg
 
-class TaskPackageInfo(eik.Task):
+class TaskPackageInfo(eik.NITask):
     src = eik.TaskParameter()
     unit = eik.WhateverParameter(significant=False)
 
@@ -56,7 +56,7 @@ class TaskPackageInfo(eik.Task):
         os.utime(self.output().path, (tstamp, tstamp))
 
 
-class TaskPackageMTree(eik.Task):
+class TaskPackageMTree(eik.NITask):
     src = eik.TaskParameter() # Presumbly this is the .PKGINFO file
 
     def generates(self):
@@ -75,7 +75,7 @@ class TaskPackageMTree(eik.Task):
         tstamp = Path(self.input().path).stat().st_mtime
         os.utime(self.output().path, (tstamp, tstamp))
 
-class TaskPackageTar(eik.Task):
+class TaskPackageTar(eik.NITask):
     src = eik.TaskParameter() # Presumbly this is the .MTREE file
     out = eik.PathParameter()
     lvl = eik.IntParameter(19)

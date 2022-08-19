@@ -27,6 +27,7 @@ class TaskPostProcessingBase(eik.StampTask):
     enabled = lg.BoolParameter(True)
 
     checkInputHash = True  # we DO actually care about the upstream status
+    ReRunAfterDeps = True
 
 class TaskStrip(TaskPostProcessingBase):
     def task(self):
