@@ -23,6 +23,7 @@ import Eikthyr as eik
 class TaskExtractBase(eik.Task):
     src = eik.TaskParameter()
     out = eik.PathParameter()
+    password = eik.Parameter('', significant=False)
 
     simplifiedOutputHash = True
 
@@ -91,6 +92,8 @@ class TaskExtract7z(TaskExtractBase):
                 cmdReal[0] = '7z'
             elif '7za' in eik.local:
                 cmdReal[0] = '7za'
+        if self.password != '':
+            cmdReal.insert(1, '-p{}'.format(self.password))
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             self.doExtract(cmdReal, fw)

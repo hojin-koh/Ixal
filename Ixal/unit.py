@@ -144,7 +144,7 @@ class Unit(MixinBuildUtilities):
                 aTaskSource.append(tDl)
                 self.src.append(tDl.output().path)
             else:
-                tEx = f['extract'](tDl, self.pathBuild / '{:d}'.format(i), canChange=True)
+                tEx = f['extract'](tDl, self.pathBuild / '{:d}'.format(i), canChange=True, **f.get('extractArgs', {}))
                 aTaskSource.append(tEx)
                 self.src.append(tEx.output().path)
         for (i,f) in enumerate(lfiles):
@@ -157,7 +157,7 @@ class Unit(MixinBuildUtilities):
                 aTaskSource.append(eik.InputTask(fThis, canChange=True))
                 self.lsrc.append(fThis)
             else:
-                tEx = f['extract'](eik.InputTask(fThis, canChange=True), self.pathBuild / 'L{:d}'.format(i), canChange=True)
+                tEx = f['extract'](eik.InputTask(fThis, canChange=True), self.pathBuild / 'L{:d}'.format(i), canChange=True, **f.get('extractArgs', {}))
                 aTaskSource.append(tEx)
                 self.lsrc.append(tEx.output().path)
 
