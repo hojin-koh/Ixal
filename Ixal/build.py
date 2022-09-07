@@ -38,6 +38,8 @@ class TaskRunScript(eik.StampTask):
         dirCD.mkdir(parents=True, exist_ok=True)
         if (dirCD / '0').is_dir():
             dirCD = dirCD / '0'
+        elif (dirCD / 'L0').is_dir():
+            dirCD = dirCD / 'L0'
         with eik.chdir(dirCD):
             getattr(self.unit.__class__, self.fun)(self.unit)
 
