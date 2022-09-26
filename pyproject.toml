@@ -22,3 +22,6 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/hojin-koh/Ixal"
 "Bug Tracker" = "https://github.com/hojin-koh/Ixal/issues"
+
+[project.scripts]
+Ixal = "Ixal.main:main"
