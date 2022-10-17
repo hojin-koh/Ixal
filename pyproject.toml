@@ -11,7 +11,7 @@ authors = [
 description = "A Eikthyr-based makepkg-like python library to build pacman-compatible packages."
 readme = "README.md"
 requires-python = ">=3.8"
-dependencies = ["Eikthyr", "rpm-vercmp"]
+dependencies = ["Eikthyr", "rpm-vercmp", "lastversion"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
