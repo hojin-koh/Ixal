@@ -26,9 +26,12 @@ def isLatest(spec, ver):
         res = requests.get('https://archlinux.org/packages/{}'.format(repo))
         html = res.content.decode('utf-8')
         latest = re.search(R'<h2>[^< ]+ ([^<-]+)-[^<]*</h2>', html)[1]
+    if src == 'portapps':
+        res = requests.get('https://portableapps.com/apps/{}'.format(repo))
+        html = res.content.decode('utf-8')
+        latest = re.search(R'<p class=[^>]+>Version ([^ ]+) ', html)[1]
     else:
-        return None
-        return has_update(repo=repo, at=src, current_version=cls.ver)
+        return has_update(repo=repo, at=src, current_version=ver)
 
     if vercmp(ver, latest) == -1:
         return latest
