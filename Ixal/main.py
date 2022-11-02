@@ -23,6 +23,7 @@ import Ixal
 from colorama import Fore, Style
 
 from .latest import isLatest
+from .ver import vercmp
 
 def doAdd(fnameOutput, fnameInput, *aPkg):
     fnameDB = '{}.db'.format(fnameOutput.removesuffix('.files'))
@@ -53,6 +54,36 @@ def doLatest(directory):
             except BaseException as e:
                 print('{}{}ERROR {}{}'.format(Fore.RED, Style.BRIGHT, e, Style.RESET_ALL))
 
+def doRebuild():
+    mVer = {}
+    mRebuild = {}
+    for f in Path('.').glob('**/*.py'):
+        try:
+            spec = importlib.util.spec_from_file_location("module.dumb", f)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        except:
+            continue
+        for cls in (c for name,c in mod.__dict__.items() if not name.startswith('_')):
+            if not isclass(cls) or not issubclass(cls, Ixal.Unit) or cls is Ixal.Unit:
+                continue
+            if 'name' not in dir(cls) or 'ver' not in dir(cls) or len(cls.name) == 0:
+                continue
+            mVer[cls.name] = '{}-{}'.format(cls.ver, cls.rel)
+            if '_rebuild' in dir(cls):
+                if isinstance(cls._rebuild, str):
+                    cls._rebuild = (cls._rebuild,)
+                for strDep in cls._rebuild:
+                    pkg, ver = strDep.split(' ', 2)
+                    if cls.name not in mRebuild:
+                        mRebuild[cls.name] = {}
+                    mRebuild[cls.name][pkg] = ver
+            #print('Checking {} from {} ...'.format(cls.name, mVer[cls.name]))
+    for pkg, info in mRebuild.items():
+        for dep, ver in info.items():
+            if vercmp(ver, mVer[dep]) == -1:
+                print('{}{}Need to rebuild {} because of {} {} > {}{}'.format(Fore.YELLOW, Style.BRIGHT, pkg, dep, mVer[dep], ver, Style.RESET_ALL))
+
 def main():
     sys.stderr.write("sys.argv = {}\n".format(sys.argv))
     nameArgv0 = sys.argv.pop(0)
@@ -73,6 +104,9 @@ def main():
             sys.stderr.write("Usage: {} latest <dir>\n".format(nameArgv0))
             return 3
         return doLatest(*sys.argv)
+
+    elif nameCmd == "rebuild":
+        return doRebuild(*sys.argv)
 
     else:
         sys.stderr.write("Error: Unknown command {}\n".format(nameCmd))
