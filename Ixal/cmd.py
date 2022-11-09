@@ -64,6 +64,14 @@ class MixinBuildUtilities(object):
             aParam.append('.')
         self.ex(eik.local['cmake'][aParam])
 
+    def runMeson(self, *args, prefix=None):
+        if prefix == None:
+            prefix = self.pathPrefix
+        aParam = ['--prefix={}'.format(prefix), '--buildtype=release', '-Doptimization=3', *args]
+        if len(args) == 0 or (len(args) > 0 and args[-1].startswith('-')):
+            aParam.append('..')
+        self.ex(eik.local['meson'][aParam])
+
     def runNinja(self, *args):
         self.ex(eik.cmd.ninja[('-j', '{:d}'.format(3), *args)])
 
