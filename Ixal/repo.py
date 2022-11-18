@@ -80,7 +80,8 @@ class TaskMakeRepoDesc(eik.Task):
 
 class TaskCleanupRepo(eik.Task):
     src = eik.TaskParameter() # Repo directory
-    out = eik.PathParameter() # A list of file to delete
+    out = eik.PathParameter() # Output: A file containing the list of file to delete
+    aDel = eik.ListParameter([], positional=False) # A list of packages to delete
 
     def task(self):
         hVer = {}
@@ -102,13 +103,20 @@ class TaskCleanupRepo(eik.Task):
                 hDir['{} {}'.format(namePkg, verPkg)] = str(d)
                 hFile['{} {}'.format(namePkg, verPkg)] = fname
             for (namePkg, aVer) in hVer.items():
+                if namePkg not in self.aDel: continue
+                for v in aVer:
+                    self.logger.debug("Delete package: {}-{}".format(namePkg, v))
+                    shutil.rmtree(hDir['{} {}'.format(namePkg, v)])
+                    aDelete.append(hFile['{} {}'.format(namePkg, v)])
+            for (namePkg, aVer) in hVer.items():
                 if len(aVer) == 1: continue
                 for v in sorted(aVer, key=cmp_to_key(vercmp), reverse=True)[1:]:
+                    if hFile['{} {}'.format(namePkg, v)] in aDelete: continue
                     self.logger.debug("Found outdated package: {}-{}".format(namePkg, v))
                     shutil.rmtree(hDir['{} {}'.format(namePkg, v)])
                     aDelete.append(hFile['{} {}'.format(namePkg, v)])
         with self.output().fpWrite() as fpw:
-            for f in aDelete:
+            for f in set(aDelete):
                 fpw.write('{}\n'.format(f))
 
 class TaskPackDB(eik.Task):
@@ -130,13 +138,14 @@ class TaskRepoAdd(eik.Task):
     out2 = eik.PathParameter() # The output "files" file
     src = eik.TaskParameter() # The original "files" file
     pkg = eik.TaskListParameter() # All packages
+    aDel = eik.ListParameter([], positional=False) # A list of packages to delete
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         tDir = TaskExtractDB(self.src, Path(UnitConfig().pathBuild) / '.db')
         aTaskDesc = [TaskMakeRepoDesc(p, tDir) for p in self.pkg]
 
-        self.tClean = TaskCleanupRepo(tDir, '{}.cleanup'.format(self.out), prev=aTaskDesc)
+        self.tClean = TaskCleanupRepo(tDir, '{}.cleanup'.format(self.out), aDel=self.aDel, prev=aTaskDesc)
         self.tPack = TaskPackDB(tDir, self.out, prev=(self.tClean,), dbonly=True)
         self.tPack2 = TaskPackDB(tDir, self.out2, prev=(self.tClean,))
 

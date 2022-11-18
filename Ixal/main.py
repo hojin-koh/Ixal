@@ -25,10 +25,10 @@ from colorama import Fore, Style
 from .latest import isLatest
 from .ver import vercmp
 
-def doAdd(fnameOutput, fnameInput, *aPkg):
+def doAdd(fnameOutput, fnameInput, *aPkg, aDel=[]):
     fnameDB = '{}.db'.format(fnameOutput.removesuffix('.files'))
     aTPkg = [eik.InputTask(f) for f in aPkg]
-    eik.run(Ixal.TaskRepoAdd(fnameDB, fnameOutput, eik.InputTask(fnameInput), aTPkg))
+    eik.run(Ixal.TaskRepoAdd(fnameDB, fnameOutput, eik.InputTask(fnameInput), aTPkg, aDel=aDel))
 
 def doLatest(directory):
     if Path(directory).is_dir():
@@ -94,10 +94,15 @@ def main():
     # Add: add packages into a repository
     nameCmd = sys.argv.pop(0)
     if nameCmd == "add":
-        if len(sys.argv) < 3:
-            sys.stderr.write("Usage: {} add <output.files> <input.files> <pkg1.tar.zst> [<pkg2.tar.zst>...]\n".format(nameArgv0))
+        aDel = []
+        if len(sys.argv) >= 2 and sys.argv[0] == '-d':
+            sys.argv.pop(0)
+            aDel = sys.argv.pop(0).split(',')
+
+        if len(sys.argv) < 2:
+            sys.stderr.write("Usage: {} add [-d pkg1,pkg2,...] <output.files> <input.files> [<pkg1.tar.zst> <pkg2.tar.zst>...]\n".format(nameArgv0))
             return 3
-        return doAdd(*sys.argv)
+        return doAdd(*sys.argv, aDel=aDel)
 
     elif nameCmd == "latest":
         if len(sys.argv) < 1:
