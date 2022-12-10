@@ -59,7 +59,7 @@ class Unit(MixinBuildUtilities):
             ('^(http|https|ftp)://.*', TaskDownload),
             ]
     mTaskExtract = [
-            ('.*\.tar(\.[^.]+)?$', TaskExtractTar),
+            ('.*\.(tar(\.[^.]+)?|tgz|tbz|txz)$', TaskExtractTar),
             ('.*\.msi$', TaskExtractMSI),
             ('.*\.(7z|zip)$', TaskExtract7z),
             ('.*\.exe$', TaskExtract7zOptional),

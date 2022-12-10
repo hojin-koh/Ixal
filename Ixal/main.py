@@ -46,11 +46,18 @@ def doLatest(directory):
                 continue
             print('Checking {} from {} ...'.format(cls.name, cls._upstream), end=' ')
             try:
-                lv = isLatest(cls._upstream, cls.ver)
-                if lv:
-                    print('{}{}Outdated: {}{}'.format(Fore.YELLOW, Style.BRIGHT, lv, Style.RESET_ALL))
+                if cls._upstream.startswith('manual'):
+                    try:
+                        url = cls._upstream.split(':',1)[1]
+                    except:
+                        url = cls.url
+                    print('{}{}MANUAL {} {}{}'.format(Fore.CYAN, Style.BRIGHT, cls.ver, url, Style.RESET_ALL))
                 else:
-                    print('{}{}OK{}'.format(Fore.GREEN, Style.BRIGHT, Style.RESET_ALL))
+                    lv = isLatest(cls._upstream, cls.ver)
+                    if lv:
+                        print('{}{}Outdated: {}{}'.format(Fore.YELLOW, Style.BRIGHT, lv, Style.RESET_ALL))
+                    else:
+                        print('{}{}OK{}'.format(Fore.GREEN, Style.BRIGHT, Style.RESET_ALL))
             except BaseException as e:
                 print('{}{}ERROR {}{}'.format(Fore.RED, Style.BRIGHT, e, Style.RESET_ALL))
 

@@ -78,6 +78,24 @@ class TaskMakeRepoDesc(eik.Task):
                 with eik.cmd.bsdtar.popen(('tf', str(pathPkg), '--exclude=^.*'), encoding='utf-8') as p:
                     fpw.write(p.stdout.read())
 
+class TaskRepoFileList(eik.Task):
+    src = eik.TaskParameter() # Repo directory
+    out = eik.PathParameter() # Output: A file containing the list of package file
+
+    def task(self):
+        hVer = {}
+        hDir = {} # key="pkgname fullver"
+        hFile = {} # key="pkgname fullver"
+        aDelete = []
+        with self.output().fpWrite() as fpw:
+            with eik.chdir(self.input().path):
+                for d in Path('.').iterdir():
+                    if not d.is_dir(): continue
+                    if not (d / 'desc').exists(): continue
+                    with (d / 'desc').open() as fp:
+                        aInfo = [l.strip() for l in fp.readlines()]
+                    fpw.write('{}\n'.format(aInfo[aInfo.index('%FILENAME%')+1]))
+
 class TaskCleanupRepo(eik.Task):
     src = eik.TaskParameter() # Repo directory
     out = eik.PathParameter() # Output: A file containing the list of file to delete
