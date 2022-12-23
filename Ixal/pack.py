@@ -84,7 +84,7 @@ class TaskPackageTar(eik.NITask):
         dirPkg = str(Path(self.input().path).parent)
         with eik.withEnv(LANG='C', LC_ALL='C'):
             with self.output().pathWrite() as fw:
-                self.ex(eik.cmd.bsdtar['-cf', '{}.tar'.format(fw), '--strip-components', '1', '-C', dirPkg, '.'])
+                self.ex(eik.cmd.bsdtar['-cf', '{}.tar'.format(fw), '--no-xattrs', '--strip-components', '1', '-C', dirPkg, '.'])
                 if self.output().path.endswith('.gz'):
                     self.ex(eik.cmd.gzip['--rsyncable', '-9', '{}.tar'.format(fw)])
                     shutil.move('{}.tar.gz'.format(fw), fw)
