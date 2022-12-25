@@ -61,7 +61,7 @@ class Unit(MixinBuildUtilities):
     mTaskExtract = [
             ('.*\.(tar(\.[^.]+)?|tgz|tbz|txz)$', TaskExtractTar),
             ('.*\.msi$', TaskExtractMSI),
-            ('.*\.(7z|zip)$', TaskExtract7z),
+            ('.*\.(7z|zip|rar)$', TaskExtract7z),
             ('.*\.exe$', TaskExtract7zOptional),
             ]
     aTaskPostProcess = [TaskPurge, TaskCompressMan, TaskStrip]
