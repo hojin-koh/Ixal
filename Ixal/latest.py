@@ -26,6 +26,10 @@ def isLatest(spec, ver):
         res = requests.get('https://archlinux.org/packages/{}'.format(repo))
         html = res.content.decode('utf-8')
         latest = re.search(R'<h2>[^< ]+ ([^<-]+)-[^<]*</h2>', html)[1]
+    elif src == 'alpine':
+        res = requests.get('https://pkgs.alpinelinux.org/package/edge/{}'.format(repo))
+        html = res.content.decode('utf-8')
+        latest = re.search(R'Flag this package out of date[^>]+>([^<-]+)-[^<]*</a>', html)[1]
     elif src == 'portapps':
         res = requests.get('https://portableapps.com/apps/{}'.format(repo))
         html = res.content.decode('utf-8')
