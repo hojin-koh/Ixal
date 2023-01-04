@@ -20,11 +20,10 @@ import time
 from pathlib import Path
 
 import Eikthyr as eik
-import luigi as lg
 
 class TaskPostProcessingBase(eik.StampTask):
     src = eik.TaskParameter()
-    enabled = lg.BoolParameter(True)
+    enabled = eik.BoolParameter(True)
 
     checkInputHash = True  # we DO actually care about the upstream status
     ReRunAfterDeps = True

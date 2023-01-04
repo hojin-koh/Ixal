@@ -39,6 +39,7 @@ class UnitConfig(lg.Config):
     pathPrefix = eik.PathParameter('/opt')
     pathOutput = eik.PathParameter('.pkg')
     packager = eik.Parameter('Unknown')
+    isRepackage = eik.BoolParameter(False)
 
 class Unit(MixinBuildUtilities):
     name = ''
@@ -64,13 +65,17 @@ class Unit(MixinBuildUtilities):
             ('.*\.(7z|zip|rar)$', TaskExtract7z),
             ('.*\.exe$', TaskExtract7zOptional),
             ]
-    aTaskPostProcess = [TaskPurge, TaskCompressMan, TaskStrip]
+
+    isRepackage = UnitConfig().isRepackage
+    aTaskPostProcess = []
 
     extension = 'pkg.tar.zst'
     environ = {}
     logger = logger
 
     def __init__(self):
+        if not self.isRepackage:
+            self.aTaskPostProcess = [TaskPurge, TaskCompressMan, TaskStrip] + self.aTaskPostProcess
         if isinstance(self.name, str):
             self.base = self.name
         else:
