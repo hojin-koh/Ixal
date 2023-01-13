@@ -42,11 +42,9 @@ class TaskStrip(TaskPostProcessingBase):
 class TaskPurge(TaskPostProcessingBase):
     pattern = eik.ListParameter((
         '.*__pycache__/',
-        '(.*/|^)share/(info|doc|gtk-doc|locale)/',
-        '(.*/|^)man/man[367]/',
-        '.*\.(pyc|pod)'
+        '.*\.(pyc|pod)',
         '(.*/|^).packlist',
-        '^\.[^/]+'
+        '^\.[^/]+',
         ), significant=False)
     patternExtra = eik.ListParameter((), significant=False)
 
@@ -68,13 +66,19 @@ class TaskPurge(TaskPostProcessingBase):
             for f in Path('.').glob('**/*'):
                 if not f.exists(): continue
                 if f.is_dir():
-                    if self.reDir.match(str(f)):
+                    if len(self.reDir.pattern) > 0 and self.reDir.match(str(f)):
                         self.logger.debug("Purged folder: {}".format(str(f)))
                         shutil.rmtree(f)
                 else:
-                    if self.reFile.match(str(f)):
+                    if len(self.reFile.pattern) > 0 and self.reFile.match(str(f)):
                         self.logger.debug("Purged file: {}".format(str(f)))
                         f.unlink()
+
+class TaskPurgeLinux(TaskPurge):
+    pattern = eik.ListParameter((
+        '(.*/|^)share/(info|doc|gtk-doc|locale)/',
+        '(.*/|^)man/man[367]/',
+        ), significant=False)
 
 class TaskCompressMan(TaskPostProcessingBase):
     pattern = eik.ListParameter((

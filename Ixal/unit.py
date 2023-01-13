@@ -29,7 +29,7 @@ from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional, TaskE
 from .logging import logger
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
 from .task import pickTask
-from .tidy import TaskStrip, TaskPurge, TaskCompressMan
+from .tidy import TaskStrip, TaskPurge, TaskPurgeLinux, TaskCompressMan
 from .ver import getVersionString
 
 
@@ -76,7 +76,9 @@ class Unit(MixinBuildUtilities):
 
     def __init__(self):
         if not self.isRepackage:
-            self.aTaskPostProcess = [TaskPurge, TaskCompressMan, TaskStrip] + self.aTaskPostProcess
+            self.aTaskPostProcess = [TaskPurge, TaskPurgeLinux, TaskCompressMan, TaskStrip] + self.aTaskPostProcess
+        else:
+            self.aTaskPostProcess = [TaskPurge] + self.aTaskPostProcess
         if isinstance(self.name, str):
             self.base = self.name
         else:
