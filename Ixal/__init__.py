@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+# Dirty hack: Disable relative import since we usually have script names like brotli or zlib
+import sys as _sys
+_sys.path = _sys.path[1:]
+
 from . import download
 from . import extract
 
