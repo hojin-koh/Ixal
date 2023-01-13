@@ -24,7 +24,7 @@ from plumbum import FG
 
 from .build import TaskRunScript, TaskRunPackageScript
 from .cmd import MixinBuildUtilities
-from .download import TaskDownload
+from .download import TaskDownload, TaskDownloadYoutube
 from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional, TaskExtractMSI
 from .logging import logger
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
@@ -58,6 +58,7 @@ class Unit(MixinBuildUtilities):
 
     mTaskDownload = [
             ('^(http|https|ftp)://.*', TaskDownload),
+            ('^youtube://.*', TaskDownloadYoutube),
             ]
     mTaskExtract = [
             ('.*\.(tar(\.[^.]+)?|tgz|tbz|txz)$', TaskExtractTar),

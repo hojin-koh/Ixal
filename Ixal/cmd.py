@@ -65,6 +65,10 @@ class MixinBuildUtilities(object):
         self.ex(eik.local['cmake'][aParam])
 
     def runMeson(self, *args, prefix=None):
+        if sys.platform == 'cygwin' and os.getenv('MSYSTEM', '') != 'MSYS':
+            with eik.withEnv(MSYSTEM='MSYS'):
+                return self.runMeson(*args, prefix=prefix)
+
         if prefix == None:
             prefix = self.pathPrefix
         aParam = ['--prefix={}'.format(prefix), '--buildtype=release', '-Doptimization=3', *args]
@@ -73,9 +77,15 @@ class MixinBuildUtilities(object):
         self.ex(eik.local['meson'][aParam])
 
     def runNinja(self, *args):
+        if sys.platform == 'cygwin' and os.getenv('MSYSTEM', '') != 'MSYS':
+            with eik.withEnv(MSYSTEM='MSYS'):
+                return self.runNinja(*args)
         self.ex(eik.cmd.ninja[('-j', '{:d}'.format(3), *args)])
 
     def runNinjaInstall(self, path, *args):
+        if sys.platform == 'cygwin' and os.getenv('MSYSTEM', '') != 'MSYS':
+            with eik.withEnv(MSYSTEM='MSYS'):
+                return self.runNinjaInstall(path, *args)
         with eik.withEnv(DESTDIR='{}/'.format(path)):
             self.ex(eik.cmd.ninja[(*args, 'install')])
 
