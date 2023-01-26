@@ -29,7 +29,7 @@ from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional, TaskE
 from .logging import logger
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
 from .task import pickTask
-from .tidy import TaskStrip, TaskPurge, TaskPurgeLinux, TaskCompressMan
+from .tidy import TaskCanonicalize, TaskStrip, TaskPurge, TaskPurgeLinux, TaskCompressMan
 from .ver import getVersionString
 
 
@@ -39,7 +39,9 @@ class UnitConfig(lg.Config):
     pathPrefix = eik.PathParameter('/opt')
     pathOutput = eik.PathParameter('.pkg')
     packager = eik.Parameter('Unknown')
-    isRepackage = eik.BoolParameter(False)
+    isRepackage = eik.BoolParameter(False) # If True: don't do too many post-processing
+    isHostInPrefix = eik.BoolParameter(False) # If True: assume the toolchain is hosted inside prefix, do some pre-processing to change hard-coded paths
+    allowLTO = eik.BoolParameter(True) # If False: filter out -flto flags
 
 class Unit(MixinBuildUtilities):
     name = ''
@@ -68,6 +70,8 @@ class Unit(MixinBuildUtilities):
             ]
 
     isRepackage = UnitConfig().isRepackage
+    isHostInPrefix = UnitConfig().isHostInPrefix
+    allowLTO = UnitConfig().allowLTO
     aTaskPostProcess = []
 
     extension = 'pkg.tar.zst'
@@ -76,7 +80,7 @@ class Unit(MixinBuildUtilities):
 
     def __init__(self):
         if not self.isRepackage:
-            self.aTaskPostProcess = [TaskPurge, TaskPurgeLinux, TaskCompressMan, TaskStrip] + self.aTaskPostProcess
+            self.aTaskPostProcess = [TaskCanonicalize, TaskPurge, TaskPurgeLinux, TaskCompressMan, TaskStrip] + self.aTaskPostProcess
         else:
             self.aTaskPostProcess = [TaskPurge] + self.aTaskPostProcess
         if isinstance(self.name, str):
@@ -188,7 +192,7 @@ class Unit(MixinBuildUtilities):
             # Cleanup/Tidying installed package
             aTaskPost = []
             for cls in self.aTaskPostProcess:
-                taskThis = cls(tPkg, pathStamp=self.pathBuild, prev=aTaskPost)
+                taskThis = cls(tPkg, pathStamp=self.pathBuild, prefix=str(self.pathPrefixRel), prev=aTaskPost)
                 aTaskPost.append(taskThis)
 
             # Final touch and tarring things up
@@ -196,6 +200,12 @@ class Unit(MixinBuildUtilities):
             tMTree = TaskPackageMTree(tInfo)
             tPack = TaskPackageTar(tMTree, self.pathOutput / '{}-{}-{}.{}'.format(name, self.fullver, self.arch, self.extension))
             aTaskFinal.append(tPack)
+
+        # Filter out LTO things here
+        if not self.allowLTO:
+            self.environ['CFLAGS'] = self.environ.get('CFLAGS', eik.getenv('CFLAGS', '')).replace('-flto', '')
+            self.environ['CXXFLAGS'] = self.environ.get('CXXFLAGS', eik.getenv('CXXFLAGS', '')).replace('-flto', '')
+            self.environ['LDFLAGS'] = self.environ.get('LDFLAGS', eik.getenv('LDFLAGS', '')).replace('-flto', '')
 
         with eik.withEnv(**self.environ):
             eik.run(aTaskFinal)

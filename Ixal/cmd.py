@@ -49,10 +49,10 @@ class MixinBuildUtilities(object):
             return
         raise RuntimeError("Failed to apply patch {} at any level".format(filePatch))
 
-    def runConfigure(self, *args, prefix=None):
+    def runConfigure(self, *args, prefix=None, configure='./configure'):
         if prefix == None:
             prefix = self.pathPrefix
-        self.ex(eik.local['./configure'][('--prefix={}'.format(prefix), *args)])
+        self.ex(eik.local[configure][('--prefix={}'.format(prefix), *args)])
 
     def runCMake(self, *args, prefix=None):
         if prefix == None:
@@ -89,8 +89,8 @@ class MixinBuildUtilities(object):
         with eik.withEnv(DESTDIR='{}/'.format(path)):
             self.ex(eik.cmd.ninja[(*args, 'install')])
 
-    def runMake(self, *args):
-        self.ex(eik.cmd.make[('-j{:d}'.format(3), *args)])
+    def runMake(self, *args, njob=3):
+        self.ex(eik.cmd.make[('-O', '-j{:d}'.format(njob), *args)])
 
     def runMakeInstall(self, path, *args):
         with eik.withEnv(DESTDIR='{}/'.format(path)):

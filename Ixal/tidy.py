@@ -23,10 +23,23 @@ import Eikthyr as eik
 
 class TaskPostProcessingBase(eik.StampTask):
     src = eik.TaskParameter()
+    prefix = eik.PathParameter()
     enabled = eik.BoolParameter(True)
 
     checkInputHash = True  # we DO actually care about the upstream status
     ReRunAfterDeps = True
+
+class TaskCanonicalize(TaskPostProcessingBase):
+    def task(self):
+        if not self.enabled: return
+        pathPrefix = Path(self.input().path) / Path(self.prefix)
+        if not pathPrefix.is_dir(): return # Nothing to see here
+        with eik.chdir(pathPrefix):
+            if Path('lib64').is_dir():
+                self.logger.info('Canonicalizing lib64')
+                shutil.copytree('lib64', 'lib', symlinks=True, dirs_exist_ok=True)
+                shutil.rmtree('lib64')
+
 
 class TaskStrip(TaskPostProcessingBase):
     def task(self):
@@ -70,6 +83,7 @@ class TaskPurge(TaskPostProcessingBase):
                         self.logger.debug("Purged folder: {}".format(str(f)))
                         shutil.rmtree(f)
                 else:
+                    if f.name == '.INSTALL': continue # Try not to purge out the installation script
                     if len(self.reFile.pattern) > 0 and self.reFile.match(str(f)):
                         self.logger.debug("Purged file: {}".format(str(f)))
                         f.unlink()
