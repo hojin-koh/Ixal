@@ -29,6 +29,7 @@ from .extract import TaskExtractTar, TaskExtract7z, TaskExtract7zOptional, TaskE
 from .logging import logger
 from .pack import TaskPackageInfo, TaskPackageMTree, TaskPackageTar
 from .task import pickTask
+from .preproc import TaskHostPath
 from .tidy import TaskCanonicalize, TaskStrip, TaskPurge, TaskPurgeLinux, TaskCompressMan
 from .ver import getVersionString
 
@@ -73,6 +74,7 @@ class Unit(MixinBuildUtilities):
     isHostInPrefix = UnitConfig().isHostInPrefix
     allowLTO = UnitConfig().allowLTO
     aTaskPostProcess = []
+    aTaskPreProcess = []
 
     extension = 'pkg.tar.zst'
     environ = {}
@@ -83,6 +85,8 @@ class Unit(MixinBuildUtilities):
             self.aTaskPostProcess = [TaskCanonicalize, TaskPurge, TaskPurgeLinux, TaskCompressMan, TaskStrip] + self.aTaskPostProcess
         else:
             self.aTaskPostProcess = [TaskPurge] + self.aTaskPostProcess
+        if self.isHostInPrefix:
+            self.aTaskPreProcess = [TaskHostPath] + self.aTaskPreProcess
         if isinstance(self.name, str):
             self.base = self.name
         else:
@@ -173,7 +177,12 @@ class Unit(MixinBuildUtilities):
                 aTaskSource.append(tEx)
                 self.lsrc.append(tEx.output().path)
 
-        tPre = TaskRunScript(aTaskSource, self, 'prepare', pathStamp=self.pathBuild)
+        aTaskPre = []
+        for tSrc in aTaskSource:
+            for cls in self.aTaskPreProcess:
+                taskThis = cls(tSrc, pathStamp=self.pathBuild, prefix=str(self.pathPrefix), prev=aTaskPre)
+                aTaskPre.append(taskThis)
+        tPre = TaskRunScript(aTaskSource, self, 'prepare', pathStamp=self.pathBuild, prev=aTaskPre)
         tBuild = TaskRunScript(aTaskSource, self, 'build', pathStamp=self.pathBuild, prev=(tPre,))
 
         aTaskFinal = []
@@ -192,7 +201,7 @@ class Unit(MixinBuildUtilities):
             # Cleanup/Tidying installed package
             aTaskPost = []
             for cls in self.aTaskPostProcess:
-                taskThis = cls(tPkg, pathStamp=self.pathBuild, prefix=str(self.pathPrefixRel), prev=aTaskPost)
+                taskThis = cls(tPkg, pathStamp=self.pathBuild, prefix=str(self.pathPrefix), prev=aTaskPost)
                 aTaskPost.append(taskThis)
 
             # Final touch and tarring things up

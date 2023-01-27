@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -95,6 +96,30 @@ class MixinBuildUtilities(object):
     def runMakeInstall(self, path, *args):
         with eik.withEnv(DESTDIR='{}/'.format(path)):
             self.ex(eik.cmd.make[('DESTDIR={}/'.format(path), *args, 'install')])
+
+    def replaceTree(self, patternFile, *args, patternContent='', exclude=None):
+        reFile = re.compile(patternFile)
+        reContent = re.compile(patternContent)
+        for f in eik.Path('.').glob('**/*'):
+            if not reFile.match(str(f)): continue
+            if exclude and re.match(exclude, str(f)): continue
+            if not f.exists(): continue
+            if not f.is_file() or f.is_symlink(): continue
+            stat = f.stat()
+            try:
+                strContent = f.read_text()
+            except:
+                continue
+            if not reContent.search(strContent): continue
+            for patternFind, strReplace in args:
+                def fReplace(match):
+                    rslt = match.expand(strReplace)
+                    self.logger.info("RE:{}: '{}' -> '{}'".format(str(f), match[0], rslt))
+                    return rslt
+                strContent = re.sub(patternFind, fReplace, strContent)
+            f.write_text(strContent)
+            os.utime(f, (stat.st_atime, stat.st_mtime))
+
 
     def writeTemplate(self, dest, src, executable=True):
         try:

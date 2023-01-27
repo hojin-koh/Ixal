@@ -32,7 +32,7 @@ class TaskPostProcessingBase(eik.StampTask):
 class TaskCanonicalize(TaskPostProcessingBase):
     def task(self):
         if not self.enabled: return
-        pathPrefix = Path(self.input().path) / Path(self.prefix)
+        pathPrefix = Path(self.input().path) / Path(self.prefix).relative_to('/')
         if not pathPrefix.is_dir(): return # Nothing to see here
         with eik.chdir(pathPrefix):
             if Path('lib64').is_dir():
