@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import re
 import shutil
 import sys
@@ -47,6 +48,12 @@ class TaskExtractBase(eik.Task):
                     f.chmod(0o755)
                 else:
                     f.chmod(0o644)
+        else: # Not cygwin
+            # Make all extracted files writable
+            for f in Path(path).glob('**/*'):
+                mode = f.stat().st_mode
+                if not mode & 0o200:
+                    f.chmod(mode | 0o200)
 
 
 class TaskExtractTar(TaskExtractBase):
@@ -59,6 +66,7 @@ class TaskExtractTar(TaskExtractBase):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             self.ex(eik.cmdfmt(cmdReal, self.input().path, fw))
+            self.normalizePerm(fw)
             self.killRedundantDir(fw)
 
 class TaskExtractMSI(TaskExtractBase):
@@ -76,8 +84,8 @@ class TaskExtractMSI(TaskExtractBase):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             self.doExtract(self.cmdMSI, fw)
-            self.killRedundantDir(fw)
             self.normalizePerm(fw)
+            self.killRedundantDir(fw)
 
 class TaskExtract7z(TaskExtractBase):
     cmd7z = eik.ListParameter(significant=False, default=('7zz', '-y', 'x', '-o{1}', '{0}'))
@@ -97,8 +105,8 @@ class TaskExtract7z(TaskExtractBase):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             self.doExtract(cmdReal, fw)
-            self.killRedundantDir(fw)
             self.normalizePerm(fw)
+            self.killRedundantDir(fw)
 
 class TaskExtract7zOptional(TaskExtract7z):
     def doExtract(self, cmd, target):
