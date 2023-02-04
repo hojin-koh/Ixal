@@ -77,11 +77,11 @@ class MixinBuildUtilities(object):
             aParam.append('..')
         self.ex(eik.local['meson'][aParam])
 
-    def runNinja(self, *args):
+    def runNinja(self, *args, njobs=int(eik.getenv('IXAL_NUM_JOBS', '3'))):
         if sys.platform == 'cygwin' and os.getenv('MSYSTEM', '') != 'MSYS':
             with eik.withEnv(MSYSTEM='MSYS'):
                 return self.runNinja(*args)
-        self.ex(eik.cmd.ninja[('-j', '{:d}'.format(3), *args)])
+        self.ex(eik.cmd.ninja[('-j', '{:d}'.format(njobs), *args)])
 
     def runNinjaInstall(self, path, *args):
         if sys.platform == 'cygwin' and os.getenv('MSYSTEM', '') != 'MSYS':
@@ -90,8 +90,8 @@ class MixinBuildUtilities(object):
         with eik.withEnv(DESTDIR='{}/'.format(path)):
             self.ex(eik.cmd.ninja[(*args, 'install')])
 
-    def runMake(self, *args, njob=3):
-        self.ex(eik.cmd.make[('-O', '-j{:d}'.format(njob), *args)])
+    def runMake(self, *args, njobs=int(eik.getenv('IXAL_NUM_JOBS', '3'))):
+        self.ex(eik.cmd.make[('-O', '-j{:d}'.format(njobs), *args)])
 
     def runMakeInstall(self, path, *args):
         with eik.withEnv(DESTDIR='{}/'.format(path)):
