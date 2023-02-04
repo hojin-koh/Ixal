@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import filecmp
 import os
 import re
 import shutil
@@ -35,10 +36,25 @@ class TaskCanonicalize(TaskPostProcessingBase):
         pathPrefix = Path(self.input().path) / Path(self.prefix).relative_to('/')
         if not pathPrefix.is_dir(): return # Nothing to see here
         with eik.chdir(pathPrefix):
+            # Put everything in lib64 into lib
             if Path('lib64').is_dir():
                 self.logger.info('Canonicalizing lib64')
                 shutil.copytree('lib64', 'lib', symlinks=True, dirs_exist_ok=True)
                 shutil.rmtree('lib64')
+            # Replacing identical *.so, *.so.\d+, *.so.\d+.\d+.\d+ into symlinks
+            if Path('lib').is_dir():
+                for f in Path('lib').glob('*.so.*'):
+                    m = re.match(R'(.*\.so)\.([0-9]+)\.([0-9]+)\.([0-9]+)$', str(f))
+                    if not m: continue
+                    self.logger.info('Soft-linking {}'.format(f))
+                    p1 = Path('{}.{}'.format(m[1], m[2]))
+                    if not p1.exists() or (p1.exists() and filecmp.cmp(f, p1, shallow=False)):
+                        p1.unlink(missing_ok=True)
+                        p1.symlink_to(f.name)
+                    p2 = Path('{}'.format(m[1]))
+                    if not p2.exists() or (p2.exists() and filecmp.cmp(p1, p2, shallow=False)):
+                        p2.unlink(missing_ok=True)
+                        p2.symlink_to(p1.name)
 
 
 class TaskStrip(TaskPostProcessingBase):
