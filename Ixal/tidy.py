@@ -44,7 +44,7 @@ class TaskCanonicalize(TaskPostProcessingBase):
             # Replacing identical *.so, *.so.\d+, *.so.\d+.\d+.\d+ into symlinks
             if Path('lib').is_dir():
                 for f in Path('lib').glob('*.so.*'):
-                    m = re.match(R'(.*\.so)\.([0-9]+)\.([0-9]+)\.([0-9]+)$', str(f))
+                    m = re.match(R'(.*\.so)\.([0-9]+)\.([0-9]+)(\.([0-9]+))?$', str(f))
                     if not m: continue
                     self.logger.info('Soft-linking {}'.format(f))
                     p1 = Path('{}.{}'.format(m[1], m[2]))
