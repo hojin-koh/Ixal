@@ -52,7 +52,7 @@ class TaskCanonicalize(TaskPostProcessingBase):
                         p1.unlink(missing_ok=True)
                         p1.symlink_to(f.name)
                     p2 = Path('{}'.format(m[1]))
-                    if not p2.exists() or (p2.exists() and filecmp.cmp(p1, p2, shallow=False)):
+                    if p2.exists() and filecmp.cmp(p1, p2, shallow=False):
                         p2.unlink(missing_ok=True)
                         p2.symlink_to(p1.name)
 
