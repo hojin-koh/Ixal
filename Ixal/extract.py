@@ -48,12 +48,13 @@ class TaskExtractBase(eik.Task):
                     f.chmod(0o755)
                 else:
                     f.chmod(0o644)
-        else: # Not cygwin
-            # Make all extracted files writable
-            for f in Path(path).glob('**/*'):
-                mode = f.stat().st_mode
-                if not mode & 0o200:
-                    f.chmod(mode | 0o200)
+
+    def makeWritable(self, path):
+        # Make all extracted files writable
+        for f in Path(path).glob('**/*'):
+            mode = f.stat().st_mode
+            if not mode & 0o200:
+                f.chmod(mode | 0o200)
 
 
 class TaskExtractTar(TaskExtractBase):
@@ -66,7 +67,7 @@ class TaskExtractTar(TaskExtractBase):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             self.ex(eik.cmdfmt(cmdReal, self.input().path, fw))
-            self.normalizePerm(fw)
+            self.makeWritable(fw)
             self.killRedundantDir(fw)
 
 class TaskExtractMSI(TaskExtractBase):
@@ -84,6 +85,7 @@ class TaskExtractMSI(TaskExtractBase):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             self.doExtract(self.cmdMSI, fw)
+            self.makeWritable(fw)
             self.normalizePerm(fw)
             self.killRedundantDir(fw)
 
@@ -105,6 +107,7 @@ class TaskExtract7z(TaskExtractBase):
         with self.output().pathWrite() as fw:
             Path(fw).mkdir(parents=True, exist_ok=True)
             self.doExtract(cmdReal, fw)
+            self.makeWritable(fw)
             self.normalizePerm(fw)
             self.killRedundantDir(fw)
 
