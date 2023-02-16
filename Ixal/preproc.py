@@ -46,5 +46,5 @@ class TaskHostPath(TaskPreProcessingBase):
                     (R'([^A-Za-z0-9_})/-])/etc', R'\1{}/etc'.format(self.prefix)),
                     (R'([^A-Za-z0-9_})/-])/usr/(sbin|bin|lib64|lib|include|share)', R'\1{}/\2'.format(self.prefix)),
                     (R'#!!!!!!!!!!! ', R'#!/usr/bin/env '),
-                    exclude=R'.*(\.html|\.xml|yo|\.yml|\.txt|\.md|\.rst|\.guess|\.sub|[A-Z]|\.am|\.ac|\.m4|configure|CMake[^/]+|meson\.build|meson_options\.txt)$|.*(debian/|CCache/|[Ee]xamples?/|[Dd]ocs?/|[Mm]an/|[Pp][Oo]/)',
+                    exclude=R'.*(\.html|\.xml|yo|\.yml|\.txt|\.md|\.rst|\.guess|\.sub|[A-Z]|\.am|\.ac|\.m4|configure|bootstrap|autogen\.sh|CMake[^/]+|meson\.build|meson_options\.txt)$|.*(debian/|CCache/|[Ee]xamples?/|[Dd]ocs?/|[Mm]an/|[Pp][Oo]/)',
                     )
